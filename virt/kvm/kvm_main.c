@@ -3879,7 +3879,7 @@ static long kvm_vm_ioctl(struct file *filp,
 		r = kvm_vm_ioctl_enable_cap_generic(kvm, &cap);
 		break;
 	}
-	case KVM_SET_USER_MEMORY_REGION: {
+	case KVM_SET_USER_MEMORY_REGION: {//将qemu的内存空间copy到内核
 		struct kvm_userspace_memory_region kvm_userspace_mem;
 
 		r = -EFAULT;

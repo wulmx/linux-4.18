@@ -710,20 +710,22 @@ void handle_fasteoi_irq(struct irq_desc *desc)
 	/*
 	 * If its disabled or no action available
 	 * then mask it and get out of here:
+	 * 如果某个中断没有定义action描述符或者该中断被关闭了IRQD_IRQ_DISABLED， 
+	 * 那么设置该中断状态为IRQS_PENDING， 并调用irq_mask()函数屏蔽该中断。
 	 */
 	if (unlikely(!desc->action || irqd_irq_disabled(&desc->irq_data))) {
 		desc->istate |= IRQS_PENDING;
 		mask_irq(desc);
 		goto out;
 	}
-
+	// /proc/intterrupts查看中断计数， 这个计数是在这里进行增加的
 	kstat_incr_irqs_this_cpu(desc);
 	if (desc->istate & IRQS_ONESHOT)
 		mask_irq(desc);
 
 	preflow_handler(desc);
-	handle_irq_event(desc);
-
+	handle_irq_event(desc);//中断处理的核心函数，开始真正的处理硬件中断
+	/* 呼应gic_handle_irq入口函数的EOI处理， 这里写EOI寄存器，表示完成了硬中断处理*/
 	cond_unmask_eoi_irq(desc, chip);
 
 	raw_spin_unlock(&desc->lock);

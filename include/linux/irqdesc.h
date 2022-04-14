@@ -55,24 +55,24 @@ struct pt_regs;
 struct irq_desc {
 	struct irq_common_data	irq_common_data;
 	struct irq_data		irq_data;
-	unsigned int __percpu	*kstat_irqs;
-	irq_flow_handler_t	handle_irq;
+	unsigned int __percpu	*kstat_irqs;//中断统计信息
+	irq_flow_handler_t	handle_irq;//highlevel irq-events handler
 #ifdef CONFIG_IRQ_PREFLOW_FASTEOI
 	irq_preflow_handler_t	preflow_handler;
 #endif
-	struct irqaction	*action;	/* IRQ action list */
+	struct irqaction	*action;	/* IRQ action list action 指向一个struct irqaction的链表。如果一个interrupt request line允许共享，那么该链表中的成员可以是多个，否则，该链表只有一个节点。*/
 	unsigned int		status_use_accessors;
 	unsigned int		core_internal_state__do_not_mess_with_it;
-	unsigned int		depth;		/* nested irq disables */
-	unsigned int		wake_depth;	/* nested wake enables */
-	unsigned int		irq_count;	/* For detecting broken IRQs */
+	unsigned int		depth;		/* nested irq disables 描述嵌套深度的信息 */
+	unsigned int		wake_depth;	/* nested wake enables 嵌套深度通过irq_set_irq_wake接口可以enable或者disable一个IRQ中断是否可以把系统从suspend状态唤醒。对一个IRQ进行wakeup source的enable和disable的操作可以嵌套*/
+	unsigned int		irq_count;	/* For detecting broken IRQs 用于处理broken irq（例如错误固件导致）*/
 	RH_KABI_FILL_HOLE(unsigned int tot_count)
-	unsigned long		last_unhandled;	/* Aging timer for unhandled count */
-	unsigned int		irqs_unhandled;
+	unsigned long		last_unhandled;	/* Aging timer for unhandled count 用于处理broken irq */
+	unsigned int		irqs_unhandled; /* 用于处理broken irq */
 	atomic_t		threads_handled;
 	int			threads_handled_last;
 	raw_spinlock_t		lock;
-	struct cpumask		*percpu_enabled;
+	struct cpumask		*percpu_enabled;//percpu类型中断可以指定该cpu上是否 enable
 	const struct cpumask	*percpu_affinity;
 #ifdef CONFIG_SMP
 	const struct cpumask	*affinity_hint;
@@ -81,7 +81,7 @@ struct irq_desc {
 	cpumask_var_t		pending_mask;
 #endif
 #endif
-	unsigned long		threads_oneshot;
+	unsigned long		threads_oneshot;//IRQ thread相关
 	atomic_t		threads_active;
 	wait_queue_head_t       wait_for_threads;
 #ifdef CONFIG_PM_SLEEP
@@ -91,7 +91,7 @@ struct irq_desc {
 	unsigned int		force_resume_depth;
 #endif
 #ifdef CONFIG_PROC_FS
-	struct proc_dir_entry	*dir;
+	struct proc_dir_entry	*dir;//irq对应的proc接口
 #endif
 #ifdef CONFIG_GENERIC_IRQ_DEBUGFS
 	struct dentry		*debugfs_file;
@@ -152,6 +152,12 @@ static inline void *irq_desc_get_handler_data(struct irq_desc *desc)
  */
 static inline void generic_handle_irq_desc(struct irq_desc *desc)
 {
+	/*
+	 * desc回调函数
+	 * gic_irq_domain_alloc -> gic_irq_domain_map , 然后定义irq_desc->handle_irq的回调函数
+	 * SPI和LPI类型的中断， desc->handler()回调函数是handle_fasteoi_irq()。
+	 * PPI类型的中断， desc->handler()回调函数是handle_percpu_devid_irq()。
+	 */
 	desc->handle_irq(desc);
 }
 

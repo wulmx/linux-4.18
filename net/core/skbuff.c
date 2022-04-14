@@ -4024,7 +4024,7 @@ err:
 	return ERR_PTR(err);
 }
 EXPORT_SYMBOL_GPL(skb_segment);
-
+/* skb_gro_receive函数用于合并同流的skb */
 int skb_gro_receive(struct sk_buff *p, struct sk_buff *skb)
 {
 	struct skb_shared_info *pinfo, *skbinfo = skb_shinfo(skb);
@@ -4041,7 +4041,7 @@ int skb_gro_receive(struct sk_buff *p, struct sk_buff *skb)
 	lp = NAPI_GRO_CB(p)->last;
 	pinfo = skb_shinfo(lp);
 
-	if (headlen <= offset) {
+	if (headlen <= offset) {//有一部分头在page中
 		skb_frag_t *frag;
 		skb_frag_t *frag2;
 		int i = skbinfo->nr_frags;
@@ -4058,9 +4058,9 @@ int skb_gro_receive(struct sk_buff *p, struct sk_buff *skb)
 		frag2 = skbinfo->frags + i;
 		do {
 			*--frag = *--frag2;
-		} while (--i);
+		} while (--i);//遍历赋值，将skb的frag加到pinfo的frgas后面
 
-		frag->page_offset += offset;
+		frag->page_offset += offset;//去除剩余的头，只保留数据部分
 		skb_frag_size_sub(frag, offset);
 
 		/* all fragments truesize : remove (head size + sk_buff) */
@@ -4073,7 +4073,7 @@ int skb_gro_receive(struct sk_buff *p, struct sk_buff *skb)
 
 		NAPI_GRO_CB(skb)->free = NAPI_GRO_FREE;
 		goto done;
-	} else if (skb->head_frag) {
+	} else if (skb->head_frag) {//支持分散-聚集IO
 		int nr_frags = pinfo->nr_frags;
 		skb_frag_t *frag = pinfo->frags + nr_frags;
 		struct page *page = virt_to_head_page(skb->head);
@@ -4122,7 +4122,7 @@ merge:
 	if (NAPI_GRO_CB(p)->last == p)
 		skb_shinfo(p)->frag_list = skb;
 	else
-		NAPI_GRO_CB(p)->last->next = skb;
+		NAPI_GRO_CB(p)->last->next = skb;//将包放入GRO队列中
 	NAPI_GRO_CB(p)->last = skb;
 	__skb_header_release(skb);
 	lp = p;
@@ -4137,7 +4137,7 @@ done:
 		lp->truesize += delta_truesize;
 		lp->len += len;
 	}
-	NAPI_GRO_CB(skb)->same_flow = 1;
+	NAPI_GRO_CB(skb)->same_flow = 1;//标识当前skb已经找到同流的skb并进行了合并
 	return 0;
 }
 EXPORT_SYMBOL_GPL(skb_gro_receive);

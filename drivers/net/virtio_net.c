@@ -1217,7 +1217,7 @@ static int add_recvbuf_mergeable(struct virtnet_info *vi,
 	return err;
 }
 
-/*
+/* 前端通过NAPI接收数据时，会在可用buffer不足的时候调用函数添加buffer
  * Returns false if we couldn't fill entirely (OOM).
  *
  * Normally run in the receive path, but can also be run from ndo_open
@@ -1229,7 +1229,7 @@ static bool try_fill_recv(struct virtnet_info *vi, struct receive_queue *rq,
 {
 	int err;
 	bool oom;
-
+	//每循环一次添加一个buffer，一直到填充满，即free消耗完=0
 	do {
 		if (vi->mergeable_rx_bufs)
 			err = add_recvbuf_mergeable(vi, rq, gfp);
@@ -1242,7 +1242,7 @@ static bool try_fill_recv(struct virtnet_info *vi, struct receive_queue *rq,
 		if (err)
 			break;
 	} while (rq->vq->num_free);
-	if (virtqueue_kick_prepare(rq->vq) && virtqueue_notify(rq->vq)) {
+	if (virtqueue_kick_prepare(rq->vq) && virtqueue_notify(rq->vq)) {//通知后端
 		u64_stats_update_begin(&rq->stats.syncp);
 		rq->stats.kicks++;
 		u64_stats_update_end(&rq->stats.syncp);

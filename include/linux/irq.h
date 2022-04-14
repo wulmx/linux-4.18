@@ -141,13 +141,13 @@ struct irq_domain;
  * @ipi_offset:		Offset of first IPI target cpu in @affinity. Optional.
  */
 struct irq_common_data {
-	unsigned int		__private state_use_accessors;
+	unsigned int		__private state_use_accessors;//wlm:底层状态，参考IRQD_xxxx
 #ifdef CONFIG_NUMA
-	unsigned int		node;
+	unsigned int		node;//numa node
 #endif
 	void			*handler_data;
-	struct msi_desc		*msi_desc;
-	cpumask_var_t		affinity;
+	struct msi_desc		*msi_desc;//关联MSI的描述结构体
+	cpumask_var_t		affinity;//中断亲和性
 #ifdef CONFIG_GENERIC_IRQ_EFFECTIVE_AFF_MASK
 	cpumask_var_t		effective_affinity;
 #endif
@@ -172,15 +172,15 @@ struct irq_common_data {
  */
 struct irq_data {
 	u32			mask;
-	unsigned int		irq;
-	unsigned long		hwirq;
+	unsigned int		irq; //中断号，就是显示在/proc/interrups的中断号
+	unsigned long		hwirq;//硬件中断号
 	struct irq_common_data	*common;
 	struct irq_chip		*chip;
 	struct irq_domain	*domain;
 #ifdef	CONFIG_IRQ_DOMAIN_HIERARCHY
 	struct irq_data		*parent_data;
 #endif
-	void			*chip_data;
+	void			*chip_data;//和中断控制器相关的私有数据
 };
 
 /*
@@ -477,36 +477,36 @@ static inline irq_hw_number_t irqd_to_hwirq(struct irq_data *d)
  */
 struct irq_chip {
 	struct device	*parent_device;
-	const char	*name;
-	unsigned int	(*irq_startup)(struct irq_data *data);
-	void		(*irq_shutdown)(struct irq_data *data);
-	void		(*irq_enable)(struct irq_data *data);
-	void		(*irq_disable)(struct irq_data *data);
+	const char	*name; //该中断控制器(驱动)的名字，用于/proc/interrupts中的显示
+	unsigned int	(*irq_startup)(struct irq_data *data);//指定的irq domain上的HW interrupt ID。如果不设定的话，default会被设定为enable函数
+	void		(*irq_shutdown)(struct irq_data *data);// 指定的irq domain上的HW interrupt ID。如果不设定的话，default会被设定为disable函数
+	void		(*irq_enable)(struct irq_data *data);//指定的irq domain上的HW interrupt ID。如果不设定的话，default会被设定为unmask函数
+	void		(*irq_disable)(struct irq_data *data);//disable指定的irq domain上的HW interrupt ID
 
-	void		(*irq_ack)(struct irq_data *data);
-	void		(*irq_mask)(struct irq_data *data);
-	void		(*irq_mask_ack)(struct irq_data *data);
-	void		(*irq_unmask)(struct irq_data *data);
-	void		(*irq_eoi)(struct irq_data *data);
-
+	void		(*irq_ack)(struct irq_data *data);//和具体的硬件相关，有些中断控制器必须在Ack之后（清除pending的状态）才能接受到新的中断
+	void		(*irq_mask)(struct irq_data *data);//mask指定的irq domain上的HW interrupt ID
+	void		(*irq_mask_ack)(struct irq_data *data);//mask并ack指定的irq domain上的HW interrupt ID
+	void		(*irq_unmask)(struct irq_data *data);//mask指定的irq domain上的HW interrupt ID
+	void		(*irq_eoi)(struct irq_data *data);//让CPU可以通知interrupt controller，它已经处理完一个中断
+	//在SMP的情况下，可以通过该callback函数设定CPU affinity
 	int		(*irq_set_affinity)(struct irq_data *data, const struct cpumask *dest, bool force);
-	int		(*irq_retrigger)(struct irq_data *data);
-	int		(*irq_set_type)(struct irq_data *data, unsigned int flow_type);
-	int		(*irq_set_wake)(struct irq_data *data, unsigned int on);
+	int		(*irq_retrigger)(struct irq_data *data);//重新触发一次中断，一般用在中断丢失的场景下。如果硬件不支持retrigger，可以使用软件的方法
+	int		(*irq_set_type)(struct irq_data *data, unsigned int flow_type);//设定指定的irq domain上的HW interrupt ID的触发方式，电平触发还是边缘触发
+	int		(*irq_set_wake)(struct irq_data *data, unsigned int on);//电源管理相关，用来enable/disable指定的interrupt source作为唤醒的条件。
 
-	void		(*irq_bus_lock)(struct irq_data *data);
-	void		(*irq_bus_sync_unlock)(struct irq_data *data);
+	void		(*irq_bus_lock)(struct irq_data *data);//有些interrupt controller是连接到慢速总线上（例如一个i2c接口的IO expander芯片），在访问这些芯片的时候需要lock住那个慢速bus（只能有一个client在使用I2C bus）
+	void		(*irq_bus_sync_unlock)(struct irq_data *data);//unlock慢速总线
 
 	void		(*irq_cpu_online)(struct irq_data *data);
 	void		(*irq_cpu_offline)(struct irq_data *data);
 
 	void		(*irq_suspend)(struct irq_data *data);
-	void		(*irq_resume)(struct irq_data *data);
-	void		(*irq_pm_shutdown)(struct irq_data *data);
+	void		(*irq_resume)(struct irq_data *data);//电源管理
+	void		(*irq_pm_shutdown)(struct irq_data *data);//电源管理shutdown
 
 	void		(*irq_calc_mask)(struct irq_data *data);
 
-	void		(*irq_print_chip)(struct irq_data *data, struct seq_file *p);
+	void		(*irq_print_chip)(struct irq_data *data, struct seq_file *p);///proc/interrupts中的信息显示
 	int		(*irq_request_resources)(struct irq_data *data);
 	void		(*irq_release_resources)(struct irq_data *data);
 

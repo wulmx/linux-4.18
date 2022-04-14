@@ -279,7 +279,7 @@ static int __init reserve_memblock_reserved_regions(void)
 }
 arch_initcall(reserve_memblock_reserved_regions);
 
-u64 __cpu_logical_map[NR_CPUS] = { [0 ... NR_CPUS-1] = INVALID_HWID };
+u64 __cpu_logical_map[NR_CPUS] = { [0 ... NR_CPUS-1] = INVALID_HWID };//表示0 到 NR_CPUS-1都赋值为ULONG_MAX
 
 void __init setup_arch(char **cmdline_p)
 {

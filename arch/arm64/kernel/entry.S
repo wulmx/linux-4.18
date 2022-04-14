@@ -431,7 +431,7 @@ tsk	.req	x28		// current thread_info
  * Interrupt handling.
  */
 	.macro	irq_handler
-	ldr_l	x1, handle_arch_irq
+	ldr_l	x1, handle_arch_irq /* 将handle_arch_irq 内存单元数据读到x1 */
 	mov	x0, sp
 	irq_stack_entry
 	blr	x1

@@ -640,7 +640,7 @@ static asmlinkage void __exception_irq_entry gic_handle_irq(struct pt_regs *regs
 {
 	u32 irqnr;
 
-	irqnr = gic_read_iar();
+	irqnr = gic_read_iar();//CPU通过读取GIC控制器的GICC_IAR( Interrupt Acknowledge Register)寄存器, 应答该中断， 并且可以得到当前发生中断的是哪一个硬件中断号
 
 	if (gic_supports_nmi() &&
 	    unlikely(gic_read_rpr() == GICD_INT_NMI_PRI)) {
@@ -656,17 +656,21 @@ static asmlinkage void __exception_irq_entry gic_handle_irq(struct pt_regs *regs
 	/* Check for special IDs first */
 	if ((irqnr >= 1020 && irqnr <= 1023))
 		return;
-
+	/* 
+	 * 0-15	SGI
+	 * 16 - 31	PPI
+	 * 32 - 1019	SPI
+	 */
 	/* Treat anything but SGIs in a uniform way */
 	if (likely(irqnr > 15)) {
 		int err;
 
 		if (static_branch_likely(&supports_deactivate_key))
-			gic_write_eoir(irqnr);
+			gic_write_eoir(irqnr);//写入硬件中断号到 SYS_ICC_EOIR1_EL1 寄存器，EIOmode=1, 所以单独写EOIR1_EL1不是代表中断结束
 		else
 			isb();
 
-		err = handle_domain_irq(gic_data.domain, irqnr, regs);
+		err = handle_domain_irq(gic_data.domain, irqnr, regs);//断控制器中断处理的主体
 		if (err) {
 			WARN_ONCE(true, "Unexpected interrupt received!\n");
 			gic_deactivate_unhandled(irqnr);
@@ -1190,13 +1194,13 @@ static int gic_set_affinity(struct irq_data *d, const struct cpumask *mask_val,
 		return -EINVAL;
 
 	/* If interrupt was enabled, disable it first */
-	enabled = gic_peek_irq(d, GICD_ISENABLER);
+	enabled = gic_peek_irq(d, GICD_ISENABLER);//disable 中断
 	if (enabled)
 		gic_mask_irq(d);
 
 	offset = convert_offset_index(d, GICD_IROUTER, &index);
 	reg = gic_dist_base(d) + offset + (index * 8);
-	val = gic_mpidr_to_affinity(cpu_logical_map(cpu));
+	val = gic_mpidr_to_affinity(cpu_logical_map(cpu));//获取要绑定中断到对应core的路由
 
 	gic_write_irouter(val, reg);
 
@@ -1592,12 +1596,12 @@ static int __init gic_init_bases(void __iomem *dist_base,
 	u32 typer;
 	int err;
 
-	if (!is_hyp_mode_available())
+	if (!is_hyp_mode_available())//不是hypervisor的情况
 		static_branch_disable(&supports_deactivate_key);
 
 	if (static_branch_likely(&supports_deactivate_key))
 		pr_info("GIC: Using split EOI/Deactivate mode\n");
-
+	// 填充全局静态变量gic_data
 	gic_data.fwnode = handle;
 	gic_data.dist_base = dist_base;
 	gic_data.redist_regions = rdist_regs;
@@ -1606,6 +1610,7 @@ static int __init gic_init_bases(void __iomem *dist_base,
 
 	/*
 	 * Find out how many interrupts are supported.
+	 * 确认SPI最大支持中断号
 	 */
 	typer = readl_relaxed(gic_data.dist_base + GICD_TYPER);
 	gic_data.rdists.gicd_typer = typer;
@@ -1622,7 +1627,7 @@ static int __init gic_init_bases(void __iomem *dist_base,
 	 */
 	if (!(gic_data.flags & FLAGS_WORKAROUND_CAVIUM_ERRATUM_38539))
 		gic_data.rdists.gicd_typer2 = readl_relaxed(gic_data.dist_base + GICD_TYPER2);
-
+	//创建irq_domain， irq_domain 主要作用是将硬件中断号映射到 irq number
 	gic_data.domain = irq_domain_create_tree(handle, &gic_irq_domain_ops,
 						 &gic_data);
 	gic_data.rdists.rdist = alloc_percpu(typeof(*gic_data.rdists.rdist));
@@ -1635,29 +1640,34 @@ static int __init gic_init_bases(void __iomem *dist_base,
 		err = -ENOMEM;
 		goto out_free;
 	}
-
+	//设置irq_domain 的令牌为DOMAIN_BUS_WIRED，有线的区别于MSI
 	irq_domain_update_bus_token(gic_data.domain, DOMAIN_BUS_WIRED);
-
+	/*
+	 * 判断是否支持rss（Range Selector Support），!!将非0值转成1,0值为0
+	 * 如果GICD_TYPER 寄存器bit[26]为1表示中断路由（IRI)支持affinity level 0 
+	 * 可以由传统的 0-15 扩展到0-255， 改特性是为了支持
+	 * more than 16 CPUs at affinity level 0
+	 */
 	gic_data.has_rss = !!(typer & GICD_TYPER_RSS);
 	pr_info("Distributor has %sRange Selector support\n",
 		gic_data.has_rss ? "" : "no ");
 
-	if (typer & GICD_TYPER_MBIS) {
+	if (typer & GICD_TYPER_MBIS) {//判断是否支持通过写GICD寄存器生成消息中断。GICD_TYPER寄存器bit[16]
 		err = mbi_init(handle, gic_data.domain);
 		if (err)
 			pr_err("Failed to initialize MBIs\n");
 	}
 
-	set_handle_irq(gic_handle_irq);
+	set_handle_irq(gic_handle_irq);//设置irq对应的handle， gic_irq_handle 是内核 gic 中断处理的入口函数
 
-	gic_update_rdist_properties();
+	gic_update_rdist_properties();//设定rdist相关属性，以及判断vlpi虚拟化是否支持
 
-	gic_smp_init();
-	gic_dist_init();
-	gic_cpu_init();
-	gic_cpu_pm_init();
+	gic_smp_init();//设置 SMP 核间交互的回调函数，类似IPI，回到函数为 gic_raise_softir。
+	gic_dist_init();//初始化 Distributor
+	gic_cpu_init();//初始化 cpu interface
+	gic_cpu_pm_init();//初始化电源管理
 
-	if (gic_dist_supports_lpis()) {
+	if (gic_dist_supports_lpis()) {//是否支持LPI 中断，支持则初始化ITS
 		its_init(handle, &gic_data.rdists, gic_data.domain);
 		its_cpu_init();
 	} else {
@@ -1814,19 +1824,19 @@ static int __init gic_of_init(struct device_node *node, struct device_node *pare
 	u64 redist_stride;
 	u32 nr_redist_regions;
 	int err, i;
-
+	//wlm:通过ioremap映射CICD的寄存器地址空间，只有一个io range则index=0
 	dist_base = of_iomap(node, 0);
-	if (!dist_base) {
+	if (!dist_base) {//返回地址空间为空
 		pr_err("%pOF: unable to map gic dist registers\n", node);
 		return -ENXIO;
 	}
-
+	//验证gic版本是v3还是v4（主要通过读GICD_PIDR2寄存器bit[7:4]. 0x1代表GICv1， 0x2代表GICv2…以此类推）
 	err = gic_validate_dist_version(dist_base);
-	if (err) {
+	if (err) {//不是v3也不是v4
 		pr_err("%pOF: no distributor detected, giving up\n", node);
 		goto out_unmap_dist;
 	}
-
+	//通过DTS读取#redistributor-regions GICR range数量
 	if (of_property_read_u32(node, "#redistributor-regions", &nr_redist_regions))
 		nr_redist_regions = 1;
 
@@ -1836,7 +1846,7 @@ static int __init gic_of_init(struct device_node *node, struct device_node *pare
 		err = -ENOMEM;
 		goto out_unmap_dist;
 	}
-
+	//为每个GRCR分配基址空间
 	for (i = 0; i < nr_redist_regions; i++) {
 		struct resource res;
 		int ret;
@@ -1850,20 +1860,20 @@ static int __init gic_of_init(struct device_node *node, struct device_node *pare
 		}
 		rdist_regs[i].phys_base = res.start;
 	}
-
+	//通过DTS读取GICR redistributor-stride的值，表示GICR的size
 	if (of_property_read_u64(node, "redistributor-stride", &redist_stride))
 		redist_stride = 0;
 
 	gic_enable_of_quirks(node, gic_quirks, &gic_data);
-
+	//核心函数
 	err = gic_init_bases(dist_base, rdist_regs, nr_redist_regions,
 			     redist_stride, &node->fwnode);
 	if (err)
 		goto out_unmap_rdist;
 
-	gic_populate_ppi_partitions(node);
+	gic_populate_ppi_partitions(node);//设置Private Peripheral Interrupt亲和性
 
-	if (static_branch_likely(&supports_deactivate_key))
+	if (static_branch_likely(&supports_deactivate_key))//虚拟化支持
 		gic_of_setup_kvm_info(node);
 	return 0;
 
@@ -1876,7 +1886,7 @@ out_unmap_dist:
 	iounmap(dist_base);
 	return err;
 }
-
+//用于在系统启动时候可以对GIC提供的初始化函数调用
 IRQCHIP_DECLARE(gic_v3, "arm,gic-v3", gic_of_init);
 
 #ifdef CONFIG_ACPI

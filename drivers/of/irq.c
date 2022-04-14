@@ -37,7 +37,7 @@ unsigned int irq_of_parse_and_map(struct device_node *dev, int index)
 {
 	struct of_phandle_args oirq;
 
-	if (of_irq_parse_one(dev, index, &oirq))
+	if (of_irq_parse_one(dev, index, &oirq))//解析DTS文件中设备定义的属性，如"reg", “interrupt”
 		return 0;
 
 	return irq_create_of_mapping(&oirq);

@@ -157,7 +157,7 @@ static int __init tzic_init_dt(struct device_node *np, struct device_node *p)
 	int irq_base;
 	int i;
 
-	tzic_base = of_iomap(np, 0);
+	tzic_base = of_iomap(np, 0);//wlm:通过ioremap映射CICE的寄存器地址空间
 	WARN_ON(!tzic_base);
 
 	/* put the TZIC into the reset value with

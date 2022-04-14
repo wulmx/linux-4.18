@@ -197,13 +197,13 @@ static struct virtqueue *setup_vq(struct virtio_pci_device *vp_dev,
 	struct virtqueue *vq;
 	u16 num;
 	int err;
-
+	/* 读取后端设置的队列数，如果要设置的队列位置超出了后端设置的队列数，返回 */
 	if (index >= vp_modern_get_num_queues(mdev))
 		return ERR_PTR(-ENOENT);
 
 	/* Check if queue is either not available or already active. */
-	num = vp_modern_get_queue_size(mdev, index);
-	if (!num || vp_modern_get_queue_enable(mdev, index))
+	num = vp_modern_get_queue_size(mdev, index);//选择要操作的queue并返回queue size
+	if (!num || vp_modern_get_queue_enable(mdev, index))//使能queue
 		return ERR_PTR(-ENOENT);
 
 	if (num & (num - 1)) {
@@ -213,7 +213,7 @@ static struct virtqueue *setup_vq(struct virtio_pci_device *vp_dev,
 
 	info->msix_vector = msix_vec;
 
-	/* create the vring */
+	/* create the vring 创建vring*/
 	vq = vring_create_virtqueue(index, num,
 				    SMP_CACHE_BYTES, &vp_dev->vdev,
 				    true, true, ctx,
@@ -221,12 +221,12 @@ static struct virtqueue *setup_vq(struct virtio_pci_device *vp_dev,
 	if (!vq)
 		return ERR_PTR(-ENOMEM);
 
-	/* activate the queue */
+	/* activate the queue 通知后端创建成功通过iowrite告知后端virtqueue的地址*/
 	vp_modern_set_queue_size(mdev, index, virtqueue_get_vring_size(vq));
 	vp_modern_queue_address(mdev, index, virtqueue_get_desc_addr(vq),
 				virtqueue_get_avail_addr(vq),
 				virtqueue_get_used_addr(vq));
-
+	//根据virtio规范计算notify字段的地址，当前端想通知后端有数据到来时，需要向这个字段写入队列的idx
 	vq->priv = (void __force *)vp_modern_map_vq_notify(mdev, index, NULL);
 	if (!vq->priv) {
 		err = -ENOMEM;

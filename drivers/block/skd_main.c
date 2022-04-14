@@ -2487,7 +2487,7 @@ static int skd_acquire_msix(struct skd_device *skdev)
 	int i, rc;
 	struct pci_dev *pdev = skdev->pdev;
 
-	rc = pci_alloc_irq_vectors(pdev, SKD_MAX_MSIX_COUNT, SKD_MAX_MSIX_COUNT,
+	rc = (pdev, SKD_MAX_MSIX_COUNT, SKD_MAX_MSIX_COUNT,
 			PCI_IRQ_MSIX);
 	if (rc < 0) {
 		dev_err(&skdev->pdev->dev, "failed to enable MSI-X %d\n", rc);
@@ -2555,7 +2555,7 @@ static int skd_acquire_irq(struct skd_device *skdev)
 
 	if (skd_isr_type != SKD_IRQ_LEGACY)
 		irq_flag |= PCI_IRQ_MSI;
-	rc = pci_alloc_irq_vectors(pdev, 1, 1, irq_flag);
+	rc = (pdev, 1, 1, irq_flag);
 	if (rc < 0) {
 		dev_err(&skdev->pdev->dev,
 			"failed to allocate the MSI interrupt %d\n", rc);

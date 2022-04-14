@@ -298,7 +298,7 @@ struct kvm_vcpu {
 	struct kvm_run *run;
 
 	struct rcuwait wait;
-	struct pid __rcu *pid;
+	struct pid __rcu *pid;//vcpu线程结构体，其中包含vcpu线程号
 	int sigset_active;
 	sigset_t sigset;
 	struct kvm_vcpu_stat stat;

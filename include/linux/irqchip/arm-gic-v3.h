@@ -91,7 +91,10 @@
  */
 #define GICD_CTLR_ENABLE_SS_G1		(1U << 1)
 #define GICD_CTLR_ENABLE_SS_G0		(1U << 0)
-
+/*
+ * 0b0 = Targeted SGIs with affinity level 0 values of 0-15 are supported.
+ * 0b1 = Targeted SGIs with affinity level 0 values of 0-255 are supported.
+ */
 #define GICD_TYPER_RSS			(1U << 26)
 #define GICD_TYPER_LPIS			(1U << 17)
 #define GICD_TYPER_MBIS			(1U << 16)

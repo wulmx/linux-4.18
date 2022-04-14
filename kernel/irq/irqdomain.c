@@ -723,13 +723,13 @@ static int irq_domain_translate(struct irq_domain *d,
 	if (d->ops->translate)
 		return d->ops->translate(d, fwspec, hwirq, type);
 #endif
-	if (d->ops->xlate)
+	if (d->ops->xlate)//这种gic里没定义
 		return d->ops->xlate(d, to_of_node(fwspec->fwnode),
 				     fwspec->param, fwspec->param_count,
 				     hwirq, type);
 
 	/* If domain has no translation, then we assume interrupt line */
-	*hwirq = fwspec->param[0];
+	*hwirq = fwspec->param[0];//实在没定义,就假设第一个就是中断号
 	return 0;
 }
 
@@ -751,10 +751,10 @@ unsigned int irq_create_fwspec_mapping(struct irq_fwspec *fwspec)
 	struct irq_domain *domain;
 	struct irq_data *irq_data;
 	irq_hw_number_t hwirq;
-	unsigned int type = IRQ_TYPE_NONE;
+	unsigned int type = IRQ_TYPE_NONE;//普通类型的中断
 	int virq;
-
-	if (fwspec->fwnode) {
+	/* 查找一个合适的domain */
+	if (fwspec->fwnode) {/* 固件节点存在 */
 		domain = irq_find_matching_fwspec(fwspec, DOMAIN_BUS_WIRED);
 		if (!domain)
 			domain = irq_find_matching_fwspec(fwspec, DOMAIN_BUS_ANY);
@@ -762,45 +762,46 @@ unsigned int irq_create_fwspec_mapping(struct irq_fwspec *fwspec)
 		domain = irq_default_domain;
 	}
 
-	if (!domain) {
+	if (!domain) {//没找到对应的domain,则不再继续映射下去
 		pr_warn("no irq domain found for %s !\n",
 			of_node_full_name(to_of_node(fwspec->fwnode)));
 		return 0;
 	}
 
-	if (irq_domain_translate(domain, fwspec, &hwirq, &type))
+	if (irq_domain_translate(domain, fwspec, &hwirq, &type))//解析出中断信息，比如硬件中断号 hwirq，中断触发方式
 		return 0;
 
 	/*
 	 * WARN if the irqchip returns a type with bits
 	 * outside the sense mask set and clear these bits.
 	 */
-	if (WARN_ON(type & ~IRQ_TYPE_SENSE_MASK))
+	if (WARN_ON(type & ~IRQ_TYPE_SENSE_MASK))//只保留有效的低四位
 		type &= IRQ_TYPE_SENSE_MASK;
 
 	/*
 	 * If we've already configured this interrupt,
 	 * don't do it again, or hell will break loose.
 	 */
-	virq = irq_find_mapping(domain, hwirq);
+	virq = irq_find_mapping(domain, hwirq);//创建hwirq和virq的映射,如果已经配置返回一个空desc的虚拟中断号
 	if (virq) {
 		/*
 		 * If the trigger type is not specified or matches the
 		 * current trigger type then we are done so return the
 		 * interrupt number.
 		 */
+		/* 如果是一个没指定中断类型,或者是刚好和指定的匹配,直接返回 */
 		if (type == IRQ_TYPE_NONE || type == irq_get_trigger_type(virq))
 			return virq;
 
 		/*
 		 * If the trigger type has not been set yet, then set
 		 * it now and return the interrupt number.
-		 */
+		 *//* 设置触发类型 */
 		if (irq_get_trigger_type(virq) == IRQ_TYPE_NONE) {
 			irq_data = irq_get_irq_data(virq);
 			if (!irq_data)
 				return 0;
-
+			/* 设置其中断触发状态类型 */
 			irqd_set_trigger_type(irq_data, type);
 			return virq;
 		}
@@ -809,18 +810,19 @@ unsigned int irq_create_fwspec_mapping(struct irq_fwspec *fwspec)
 			hwirq, of_node_full_name(to_of_node(fwspec->fwnode)));
 		return 0;
 	}
-
+	/* 如果是一个级联的domain */
 	if (irq_domain_is_hierarchy(domain)) {
+		/* 层次结构的里面重新创建映射 */
 		virq = irq_domain_alloc_irqs(domain, 1, NUMA_NO_NODE, fwspec);
 		if (virq <= 0)
 			return 0;
 	} else {
 		/* Create mapping */
-		virq = irq_create_mapping(domain, hwirq);
+		virq = irq_create_mapping(domain, hwirq);//创建完映射表
 		if (!virq)
 			return virq;
 	}
-
+	 /* 继续处理级联方式的domain */
 	irq_data = irq_get_irq_data(virq);
 	if (!irq_data) {
 		if (irq_domain_is_hierarchy(domain))
@@ -888,7 +890,7 @@ unsigned int irq_find_mapping(struct irq_domain *domain,
 		domain = irq_default_domain;
 	if (domain == NULL)
 		return 0;
-
+	/* hwirq小于该domain中的直接映射的最大中断 */
 	if (hwirq < domain->revmap_direct_max_irq) {
 		data = irq_domain_get_irq_data(domain, hwirq);
 		if (data && data->hwirq == hwirq)
@@ -897,8 +899,8 @@ unsigned int irq_find_mapping(struct irq_domain *domain,
 
 	/* Check if the hwirq is in the linear revmap. */
 	if (hwirq < domain->revmap_size)
-		return domain->linear_revmap[hwirq];
-
+		return domain->linear_revmap[hwirq]; //返回这个中断芯片在上一层的中断号
+	//使用基数树进行映射的情况
 	rcu_read_lock();
 	data = radix_tree_lookup(&domain->revmap_tree, hwirq);
 	rcu_read_unlock();

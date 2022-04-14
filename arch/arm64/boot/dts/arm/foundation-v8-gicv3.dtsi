@@ -2,21 +2,31 @@
  * ARM Ltd.
  *
  * ARMv8 Foundation model DTS (GICv3 configuration)
+ * compatible: 用于匹配GICv3驱动
+ * #interrupt-cells: 这是一个中断控制器节点的属性。它声明了该中断控制器的中断指示符(-interrupts)中 cell 的个数
+ * #address-cells ， #size-cells， ranges：用于寻址， #address-cells表示reg中address元素的个数，#size-cells用来表示length元素的个数
+ * interrupt-controller: 表示该节点是一个中断控制器
+ * redistributor-stride： 一个GICR的大小
+ * #redistributor-regions: GICR域个数。
+ * reg ：GIC的物理基地址，分别对应GICD,GICR,GICC…
+ * interrupts： 分别代表中断类型，中断号，中断类型， PPI中断亲和， 保留字段。
+ * a为0表示SPI，1表示PPI；b表示中断号（注意SPI/PPI的中断号范围）；c为1表示沿中断，4表示电平中断。
+ * msi-controller: 表示节点是MSI控制器
  */
 
 / {
 	gic: interrupt-controller@2f000000 {
 		compatible = "arm,gic-v3";
-		#interrupt-cells = <3>;
+		#interrupt-cells = <3>;/*这是一个中断控制器节点的属性。它声明了该中断控制器的中断指示符(-interrupts)中 cell 的个数*/
 		#address-cells = <2>;
 		#size-cells = <2>;
 		ranges;
 		interrupt-controller;
-		reg =	<0x0 0x2f000000 0x0 0x10000>,
-			<0x0 0x2f100000 0x0 0x200000>,
-			<0x0 0x2c000000 0x0 0x2000>,
-			<0x0 0x2c010000 0x0 0x2000>,
-			<0x0 0x2c02f000 0x0 0x2000>;
+		reg =	<0x0 0x2f000000 0x0 0x10000>,/* GICD */
+			<0x0 0x2f100000 0x0 0x200000>, /* GICR */
+			<0x0 0x2c000000 0x0 0x2000>,/* GICC */
+			<0x0 0x2c010000 0x0 0x2000>,/* GICH (hypervisor)*/
+			<0x0 0x2c02f000 0x0 0x2000>;/* GICV (virtual ?)*/
 		interrupts = <1 9 4>;
 
 		its: its@2f020000 {

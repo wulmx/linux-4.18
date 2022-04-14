@@ -105,11 +105,12 @@ struct uio_info {
 	long			irq;
 	unsigned long		irq_flags;
 	void			*priv;
+	/* uio_interrupt 中调用，用于中断处理, uio_register_device 之前必须初始化 */
 	irqreturn_t (*handler)(int irq, struct uio_info *dev_info);
-	int (*mmap)(struct uio_info *info, struct vm_area_struct *vma);
-	int (*open)(struct uio_info *info, struct inode *inode);
-	int (*release)(struct uio_info *info, struct inode *inode);
-	int (*irqcontrol)(struct uio_info *info, s32 irq_on);
+	int (*mmap)(struct uio_info *info, struct vm_area_struct *vma);//在uio_mmap中被调用
+	int (*open)(struct uio_info *info, struct inode *inode);//在uio_open中被调用，执行设备打开特定操作
+	int (*release)(struct uio_info *info, struct inode *inode);//在uio_device中被调用，执行设备打开特定操作
+	int (*irqcontrol)(struct uio_info *info, s32 irq_on);//在uio_write方法中被调用，执行用户驱动的操作
 };
 
 extern int __must_check

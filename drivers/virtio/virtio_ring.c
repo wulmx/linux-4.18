@@ -113,18 +113,18 @@ struct vring_virtqueue {
 	bool broken;
 
 	/* Host supports indirect buffers */
-	bool indirect;
+	bool indirect;//host端是否支持非直接的buffer
 
 	/* Host publishes avail event idx */
 	bool event;
 
 	/* Head of free buffer list. */
-	unsigned int free_head;
+	unsigned int free_head;//free buffer 的头
 	/* Number we've added since last sync. */
-	unsigned int num_added;
+	unsigned int num_added;//最近一次操作向队列中添加报文的数量
 
 	/* Last used index we've seen. */
-	u16 last_used_idx;
+	u16 last_used_idx;//wlm:HW更新，通过比较 last_used_idx 与当前vring的used_idx确认中间的数据
 
 	union {
 		/* Available for split ring */
@@ -1940,7 +1940,7 @@ void virtqueue_disable_cb(struct virtqueue *_vq)
 }
 EXPORT_SYMBOL_GPL(virtqueue_disable_cb);
 
-/**
+/** wlm:取消中断抑制
  * virtqueue_enable_cb_prepare - restart callbacks after disable_cb
  * @_vq: the struct virtqueue we're talking about.
  *

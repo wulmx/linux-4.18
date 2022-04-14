@@ -95,7 +95,7 @@ static int virtio_dev_match(struct device *_dv, struct device_driver *_dr)
 	const struct virtio_device_id *ids;
 
 	ids = drv_to_virtio(_dr)->id_table;
-	for (i = 0; ids[i].device; i++)
+	for (i = 0; ids[i].device; i++)//match device id
 		if (virtio_id_match(dev, &ids[i]))
 			return 1;
 	return 0;
@@ -171,6 +171,7 @@ EXPORT_SYMBOL_GPL(virtio_config_enable);
 void virtio_add_status(struct virtio_device *dev, unsigned int status)
 {
 	might_sleep();
+	// ->vp_set_status ,写pci配置空间的io地址
 	dev->config->set_status(dev, dev->config->get_status(dev) | status);
 }
 EXPORT_SYMBOL_GPL(virtio_add_status);
@@ -184,7 +185,7 @@ int virtio_finalize_features(struct virtio_device *dev)
 	if (ret)
 		return ret;
 
-	if (!virtio_has_feature(dev, VIRTIO_F_VERSION_1))
+	if (!virtio_has_feature(dev, VIRTIO_F_VERSION_1))//没有1.0的feature
 		return 0;
 
 	virtio_add_status(dev, VIRTIO_CONFIG_S_FEATURES_OK);
@@ -210,7 +211,10 @@ static int virtio_dev_probe(struct device *_d)
 	/* We have a driver! */
 	virtio_add_status(dev, VIRTIO_CONFIG_S_DRIVER);
 
-	/* Figure out what features the device supports. */
+	/* Figure out what features the device supports. 
+	 * 回调函数vp_get_features->vp_modern_get_features
+	 * vp_modern_get_features 中会和后端设备协商feature
+	 */
 	device_features = dev->config->get_features(dev);
 
 	/* Figure out what features the driver supports. */
@@ -248,7 +252,7 @@ static int virtio_dev_probe(struct device *_d)
 		if (err)
 			goto err;
 	}
-
+	// 协商结果，成功会置位VIRTIO_CONFIG_S_FEATURES_OK，表示前后端协商成功
 	err = virtio_finalize_features(dev);
 	if (err)
 		goto err;
@@ -303,8 +307,8 @@ int register_virtio_driver(struct virtio_driver *driver)
 {
 	/* Catch this early. */
 	BUG_ON(driver->feature_table_size && !driver->feature_table);
-	driver->driver.bus = &virtio_bus;
-	return driver_register(&driver->driver);
+	driver->driver.bus = &virtio_bus;// 将virtio_blk或者net驱动的总线指向virtio
+	return driver_register(&driver->driver);//注册驱动
 }
 EXPORT_SYMBOL_GPL(register_virtio_driver);
 
@@ -336,7 +340,7 @@ int register_virtio_device(struct virtio_device *dev)
 		goto out;
 
 	dev->index = err;
-	dev_set_name(&dev->dev, "virtio%u", dev->index);
+	dev_set_name(&dev->dev, "virtio%u", dev->index);//设置virtio dev name
 
 	spin_lock_init(&dev->config_lock);
 	dev->config_enabled = false;
@@ -347,7 +351,7 @@ int register_virtio_device(struct virtio_device *dev)
 	dev->config->reset(dev);
 
 	/* Acknowledge that we've seen the device. */
-	virtio_add_status(dev, VIRTIO_CONFIG_S_ACKNOWLEDGE);
+	virtio_add_status(dev, VIRTIO_CONFIG_S_ACKNOWLEDGE);//通知后端已发现此virtio设备 
 
 	INIT_LIST_HEAD(&dev->vqs);
 
@@ -445,7 +449,7 @@ EXPORT_SYMBOL_GPL(virtio_device_restore);
 
 static int virtio_init(void)
 {
-	if (bus_register(&virtio_bus) != 0)
+	if (bus_register(&virtio_bus) != 0)//注册virtio_bus总线，会生成/sys/bus/virtio/并创建divice和dirver目录
 		panic("virtio bus registration failed");
 	return 0;
 }

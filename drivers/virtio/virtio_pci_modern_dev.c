@@ -214,7 +214,7 @@ int vp_modern_probe(struct virtio_pci_modern_device *mdev)
 	check_offsets();
 
 	mdev->pci_dev = pci_dev;
-
+	//只需要匹配device id， vendor id不需要
 	/* We only own devices >= 0x1000 and <= 0x107f: leave the rest. */
 	if (pci_dev->device < 0x1000 || pci_dev->device > 0x107f)
 		return -ENODEV;
@@ -365,7 +365,7 @@ EXPORT_SYMBOL_GPL(vp_modern_remove);
 /*
  * vp_modern_get_features - get features from device
  * @mdev: the modern virtio-pci device
- *
+ * 进行特性协商
  * Returns the features read from the device
  */
 u64 vp_modern_get_features(struct virtio_pci_modern_device *mdev)
@@ -373,9 +373,20 @@ u64 vp_modern_get_features(struct virtio_pci_modern_device *mdev)
 	struct virtio_pci_common_cfg __iomem *cfg = mdev->common;
 
 	u64 features;
-
+	/* 驱动写入device_feature_select为0，设备alps通过读取device_feature_select值写入设备支持的
+	 * device_feature（此时设备须检查支持的特性是否上述表格列出的virtio1.0
+     * 的特性以及比较支持的特性间的逻辑关系，即为若基础特性未能提供，则在此基础之上的特性也不能提供）
+	 */
 	vp_iowrite32(0, &cfg->device_feature_select);
-	features = vp_ioread32(&cfg->device_feature);
+	features = vp_ioread32(&cfg->device_feature);//读取设备的device_feature
+	/*
+	 * 重复上面动作但是写入1到device_feature_select
+	 * 此阶段须要协商VIRTIO_F_VERSION_1特性若协商成功则进入下一步，
+	 * 若失败则设备先给设备状态置为DEVICE_NEEDS_RESET后再重启设备在此步骤中驱动可能会读取
+	 * （函数为virtio_pci_config_read，肯定不会写入，例如驱动协商特性VIRTIO_NET_F_STATUS，
+	 * 读取virtio_net_config的status成员获得连接状态判断网卡是否连接）virtio设备的配置信息，
+	 * 在同意特性协商之前检查是否能支持设备；
+	 */
 	vp_iowrite32(1, &cfg->device_feature_select);
 	features |= ((u64)vp_ioread32(&cfg->device_feature) << 32);
 
@@ -583,8 +594,15 @@ EXPORT_SYMBOL_GPL(vp_modern_set_queue_size);
 u16 vp_modern_get_queue_size(struct virtio_pci_modern_device *mdev,
 			     u16 index)
 {
-	vp_iowrite16(index, &mdev->common->queue_select);
-
+	/*
+	 * 选择要操作的队列，这是virtio规范定义的动作，一个virtio-blk设备可能有多个队列，
+	 * 当要操作其中某个队列时，首先通过queue_select字段告知后端
+	 */
+	vp_iowrite16(index, &mdev->common->queue_select);//选择要操作的队列
+	/*
+	 * virtqueue的队列深度由后端设置，读取队列深度，队列初始化时环的长度，
+	 * descriptor表的长度都是这个
+	 */
 	return vp_ioread16(&mdev->common->queue_size);
 
 }

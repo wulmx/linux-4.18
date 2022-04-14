@@ -500,16 +500,16 @@ static int irq_expand_nr_irqs(unsigned int nr)
 	nr_irqs = nr;
 	return 0;
 }
-
+/* wlm 基数树方式的初始化 radix_tree_insert*/
 int __init early_irq_init(void)
 {
 	int i, initcnt, node = first_online_node;
 	struct irq_desc *desc;
 
-	init_irq_default_affinity();
+	init_irq_default_affinity();//初期化默认的中断亲和性
 
 	/* Let arch update nr_irqs and return the nr of preallocated irqs */
-	initcnt = arch_probe_nr_irqs();
+	initcnt = arch_probe_nr_irqs();//根据不同的架构
 	printk(KERN_INFO "NR_IRQS: %d, nr_irqs: %d, preallocated irqs: %d\n",
 	       NR_IRQS, nr_irqs, initcnt);
 
@@ -522,15 +522,15 @@ int __init early_irq_init(void)
 	if (initcnt > nr_irqs)
 		nr_irqs = initcnt;
 
-	for (i = 0; i < initcnt; i++) {
+	for (i = 0; i < initcnt; i++) {//为什么每一个irq 建立irq_desc
 		desc = alloc_desc(i, node, 0, NULL, NULL);
 		set_bit(i, allocated_irqs);
 		irq_insert_desc(i, desc);
 	}
-	return arch_early_irq_init();
+	return arch_early_irq_init();//特定arch关联的初始化
 }
 
-#else /* !CONFIG_SPARSE_IRQ */
+#else /* !CONFIG_SPARSE_IRQ 没有这个内核配置项将会走下面版本的early_irq_init*/
 
 struct irq_desc irq_desc[NR_IRQS] __cacheline_aligned_in_smp = {
 	[0 ... NR_IRQS-1] = {
@@ -553,13 +553,13 @@ int __init early_irq_init(void)
 	count = ARRAY_SIZE(irq_desc);
 
 	for (i = 0; i < count; i++) {
-		desc[i].kstat_irqs = alloc_percpu(unsigned int);
-		alloc_masks(&desc[i], node);
+		desc[i].kstat_irqs = alloc_percpu(unsigned int);//分配per cpu的irq统计信息需要的内存
+		alloc_masks(&desc[i], node);//分配中断描述符中需要的cpu mask内存
 		raw_spin_lock_init(&desc[i].lock);
 		lockdep_set_class(&desc[i].lock, &irq_desc_lock_class);
-		desc_set_defaults(i, &desc[i], node, NULL, NULL);
+		desc_set_defaults(i, &desc[i], node, NULL, NULL);//设置默认值
 	}
-	return arch_early_irq_init();
+	return arch_early_irq_init();//arch关联的初始化
 }
 
 struct irq_desc *irq_to_desc(unsigned int irq)
@@ -653,25 +653,25 @@ int __handle_domain_irq(struct irq_domain *domain, unsigned int hwirq,
 	unsigned int irq = hwirq;
 	int ret = 0;
 
-	irq_enter();
+	irq_enter();//告诉Linux 内核要进入中断上下文
 
 #ifdef CONFIG_IRQ_DOMAIN
 	if (lookup)
-		irq = irq_find_mapping(domain, hwirq);
+		irq = irq_find_mapping(domain, hwirq);//通过硬件中断号去查找IRQ中断号
 #endif
 
 	/*
 	 * Some hardware gives randomly wrong interrupts.  Rather
 	 * than crashing, do something sensible.
 	 */
-	if (unlikely(!irq || irq >= nr_irqs)) {
+	if (unlikely(!irq || irq >= nr_irqs)) {//对硬件的一些随机错误中断的回应irq_err_count计数
 		ack_bad_irq(irq);
 		ret = -EINVAL;
 	} else {
-		generic_handle_irq(irq);
+		generic_handle_irq(irq);//通用中断处理函数
 	}
 
-	irq_exit();
+	irq_exit();//硬件中断处理已经完成。与irq_enter()相反， 通过preempt_count_sub(),减少HARDIRQ域的值。
 	set_irq_regs(old_regs);
 	return ret;
 }

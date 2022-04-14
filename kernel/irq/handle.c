@@ -153,6 +153,8 @@ irqreturn_t __handle_irq_event_percpu(struct irq_desc *desc, unsigned int *flags
 			lockdep_hardirq_threaded();
 
 		trace_irq_handler_entry(irq, action);
+		/* 用irq号找到对应的irq_desc，irq_desc->action->handler
+		   就是注册中断时，申请的中断处理函数 */
 		res = action->handler(irq, action->dev_id);
 		trace_irq_handler_exit(irq, action, res);
 
@@ -161,12 +163,12 @@ irqreturn_t __handle_irq_event_percpu(struct irq_desc *desc, unsigned int *flags
 			local_irq_disable();
 
 		switch (res) {
-		case IRQ_WAKE_THREAD:
+		case IRQ_WAKE_THREAD:// 如果中断号的处理函数返回IRQ_WAKE_THREAD，表示需要唤醒中断线程。
 			/*
 			 * Catch drivers which return WAKE_THREAD but
 			 * did not set up a thread function
 			 */
-			if (unlikely(!action->thread_fn)) {
+			if (unlikely(!action->thread_fn)) {//对应的是request_threaded_irq()时, 中断线程执行的部分.
 				warn_no_thread(irq, action);
 				break;
 			}
@@ -174,7 +176,7 @@ irqreturn_t __handle_irq_event_percpu(struct irq_desc *desc, unsigned int *flags
 			__irq_wake_thread(desc, action);
 
 			/* Fall through to add to randomness */
-		case IRQ_HANDLED:
+		case IRQ_HANDLED://如果中断号的处理函数返回IRQ_HANDLED，说明该action的中断处理函数已经处理完毕。
 			*flags |= action->flags;
 			break;
 
@@ -206,8 +208,8 @@ irqreturn_t handle_irq_event(struct irq_desc *desc)
 {
 	irqreturn_t ret;
 
-	desc->istate &= ~IRQS_PENDING;
-	irqd_set(&desc->irq_data, IRQD_IRQ_INPROGRESS);
+	desc->istate &= ~IRQS_PENDING;//pending标志位清除
+	irqd_set(&desc->irq_data, IRQD_IRQ_INPROGRESS);//设置INPROGRESS
 	raw_spin_unlock(&desc->lock);
 
 	ret = handle_irq_event_percpu(desc);

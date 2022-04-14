@@ -31,19 +31,21 @@
  * store and access that space differently. */
 #include <linux/types.h>
 
-/* Status byte for guest to report progress, and synchronize features. */
+/* Status byte for guest to report progress, and synchronize features.
+ * 以下状态位用于标记 virtio_pci_common_cfg->device_status用来标记设备状态
+ */
 /* We have seen device and processed generic fields (VIRTIO_CONFIG_F_VIRTIO) */
-#define VIRTIO_CONFIG_S_ACKNOWLEDGE	1
+#define VIRTIO_CONFIG_S_ACKNOWLEDGE	1 //标记Guest已经发现了设备并识别到它是一个virtio设备
 /* We have found a driver for the device. */
-#define VIRTIO_CONFIG_S_DRIVER		2
+#define VIRTIO_CONFIG_S_DRIVER		2 //标记Guest知道这个virtio设备是什么驱动，知道用什么驱动让它工作
 /* Driver has used its parts of the config, and is happy */
-#define VIRTIO_CONFIG_S_DRIVER_OK	4
+#define VIRTIO_CONFIG_S_DRIVER_OK	4 //标记Guest驱动加载这个设备成功
 /* Driver has finished configuring features */
-#define VIRTIO_CONFIG_S_FEATURES_OK	8
+#define VIRTIO_CONFIG_S_FEATURES_OK	8 //标记前端与后端完成特性协商
 /* Device entered invalid state, driver must reset it */
-#define VIRTIO_CONFIG_S_NEEDS_RESET	0x40
+#define VIRTIO_CONFIG_S_NEEDS_RESET	0x40 //后端标记该设备有问题，需要Guest复位
 /* We've given up on this device. */
-#define VIRTIO_CONFIG_S_FAILED		0x80
+#define VIRTIO_CONFIG_S_FAILED		0x80 //前端在初始化或者使用virtio设备过程中出了问题并且没法修复，前端标记放弃这个设备，不使用
 
 /*
  * Virtio feature bits VIRTIO_TRANSPORT_F_START through

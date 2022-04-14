@@ -1431,7 +1431,7 @@ struct sk_buff *inet_gro_receive(struct list_head *head, struct sk_buff *skb)
 	int proto;
 
 	off = skb_gro_offset(skb);
-	hlen = off + sizeof(*iph);
+	hlen = off + sizeof(*iph);//MAC + IP头长度
 	iph = skb_gro_header_fast(skb, off);
 	if (skb_gro_header_hard(skb, hlen)) {
 		iph = skb_gro_header_slow(skb, hlen, off);
@@ -1442,17 +1442,17 @@ struct sk_buff *inet_gro_receive(struct list_head *head, struct sk_buff *skb)
 	proto = iph->protocol;
 
 	rcu_read_lock();
-	ops = rcu_dereference(inet_offloads[proto]);
+	ops = rcu_dereference(inet_offloads[proto]);//找到传输层注册的处理函数
 	if (!ops || !ops->callbacks.gro_receive)
 		goto out_unlock;
 
-	if (*(u8 *)iph != 0x45)
+	if (*(u8 *)iph != 0x45)//不是IPv4且头长度不是20字节
 		goto out_unlock;
 
 	if (ip_is_fragment(iph))
 		goto out_unlock;
 
-	if (unlikely(ip_fast_csum((u8 *)iph, 5)))
+	if (unlikely(ip_fast_csum((u8 *)iph, 5)))//检验和非法
 		goto out_unlock;
 
 	id = ntohl(*(__be32 *)&iph->id);
@@ -1463,7 +1463,7 @@ struct sk_buff *inet_gro_receive(struct list_head *head, struct sk_buff *skb)
 		struct iphdr *iph2;
 		u16 flush_id;
 
-		if (!NAPI_GRO_CB(p)->same_flow)
+		if (!NAPI_GRO_CB(p)->same_flow)//与当前包不是一个流
 			continue;
 
 		iph2 = (struct iphdr *)(p->data + off);
@@ -1477,13 +1477,13 @@ struct sk_buff *inet_gro_receive(struct list_head *head, struct sk_buff *skb)
 		    ((__force u32)iph->daddr ^ (__force u32)iph2->daddr)) {
 			NAPI_GRO_CB(p)->same_flow = 0;
 			continue;
-		}
+		}//三元组不匹配，与当前包不是一个流
 
 		/* All fields must match except length and checksum. */
 		NAPI_GRO_CB(p)->flush |=
 			(iph->ttl ^ iph2->ttl) |
 			(iph->tos ^ iph2->tos) |
-			((iph->frag_off ^ iph2->frag_off) & htons(IP_DF));
+			((iph->frag_off ^ iph2->frag_off) & htons(IP_DF));//检查ttl、tos、id顺序，如果不符合则不是一个流
 
 		NAPI_GRO_CB(p)->flush |= flush;
 
@@ -1528,7 +1528,7 @@ struct sk_buff *inet_gro_receive(struct list_head *head, struct sk_buff *skb)
 	skb_set_transport_header(skb, skb_gro_offset(skb));
 
 	pp = indirect_call_gro_receive(tcp4_gro_receive, udp4_gro_receive,
-				       ops->callbacks.gro_receive, head, skb);
+				       ops->callbacks.gro_receive, head, skb);//指向tcp4_gro_receive或者udp4_gro_receive
 
 out_unlock:
 	rcu_read_unlock();

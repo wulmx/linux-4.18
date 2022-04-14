@@ -5755,11 +5755,13 @@ static void gro_pull_from_frag0(struct sk_buff *skb, int grow)
 			--pinfo->nr_frags * sizeof(pinfo->frags[0]));
 	}
 }
-
+/* inet_gro_receive 函数是网络层skb聚合处理函数 */
 INDIRECT_CALLABLE_DECLARE(struct sk_buff *inet_gro_receive(struct list_head *,
 							   struct sk_buff *));
+/* 传输层skb聚合处理函数 */
 INDIRECT_CALLABLE_DECLARE(struct sk_buff *ipv6_gro_receive(struct list_head *,
 							   struct sk_buff *));
+/* wlm: dev_gro_receive函数用于合并skb，并决定是否将合并后的大skb送入网络协议栈 */
 static enum gro_result dev_gro_receive(struct napi_struct *napi, struct sk_buff *skb)
 {
 	struct list_head *head = &offload_base;
@@ -5769,15 +5771,15 @@ static enum gro_result dev_gro_receive(struct napi_struct *napi, struct sk_buff 
 	enum gro_result ret;
 	int same_flow;
 	int grow;
-
+	/* 不支持GRO 的话进入这个分支 */
 	if (netif_elide_gro(skb->dev))
 		goto normal;
 
-	gro_list_prepare(napi, skb);
+	gro_list_prepare(napi, skb);//比较GRO队列中的skb与当前skb在链路层是否属于同一个流
 
 	rcu_read_lock();
-	list_for_each_entry_rcu(ptype, head, list) {
-		if (ptype->type != type || !ptype->callbacks.gro_receive)
+	list_for_each_entry_rcu(ptype, head, list) {//遍历GRO处理函数注册队列
+		if (ptype->type != type || !ptype->callbacks.gro_receive)//查找网络层GRO处理函数
 			continue;
 
 		skb_set_network_header(skb, skb_gro_offset(skb));
@@ -5806,14 +5808,14 @@ static enum gro_result dev_gro_receive(struct napi_struct *napi, struct sk_buff 
 			NAPI_GRO_CB(skb)->csum_cnt = 0;
 			NAPI_GRO_CB(skb)->csum_valid = 0;
 		}
-
+		//调用inet_gro_receive或ipv6_gro_receive合并skb
 		pp = INDIRECT_CALL_INET(ptype->callbacks.gro_receive,
 					ipv6_gro_receive, inet_gro_receive,
 					&napi->gro_list, skb);
 		break;
 	}
 	rcu_read_unlock();
-
+	//没有找到处理函数
 	if (&ptype->list == head)
 		goto normal;
 
@@ -5827,16 +5829,16 @@ static enum gro_result dev_gro_receive(struct napi_struct *napi, struct sk_buff 
 
 	if (pp) {
 		skb_list_del_init(pp);
-		napi_gro_complete(pp);
+		napi_gro_complete(pp);//更新聚合后的skb信息,将包送入协议栈
 		napi->gro_count--;
 	}
 
-	if (same_flow)
+	if (same_flow)//找到与当前skb属与同一个流的skb，此时当前skb已经聚合到所属的流中
 		goto ok;
-
+	//skb不能聚合
 	if (NAPI_GRO_CB(skb)->flush)
 		goto normal;
-
+	//GRO队列已满
 	if (unlikely(napi->gro_count >= MAX_GRO_SKBS)) {
 		struct sk_buff *nskb;
 
@@ -5851,7 +5853,7 @@ static enum gro_result dev_gro_receive(struct napi_struct *napi, struct sk_buff 
 	NAPI_GRO_CB(skb)->last = skb;
 	skb_shinfo(skb)->gso_size = skb_gro_len(skb);
 	list_add(&skb->list, &napi->gro_list);
-	ret = GRO_HELD;
+	ret = GRO_HELD;//存储当前包，不能释放
 
 pull:
 	grow = skb_gro_offset(skb) - skb_headlen(skb);
@@ -5908,7 +5910,7 @@ static void napi_skb_free_stolen_head(struct sk_buff *skb)
 static gro_result_t napi_skb_finish(gro_result_t ret, struct sk_buff *skb)
 {
 	switch (ret) {
-	case GRO_NORMAL:
+	case GRO_NORMAL://将数据包送进协议栈
 		if (netif_receive_skb_internal(skb))
 			ret = GRO_DROP;
 		break;
@@ -5917,14 +5919,14 @@ static gro_result_t napi_skb_finish(gro_result_t ret, struct sk_buff *skb)
 		kfree_skb(skb);
 		break;
 
-	case GRO_MERGED_FREE:
+	case GRO_MERGED_FREE://表示skb可以被free，因为GRO已经将skb合并并保存起来
 		if (NAPI_GRO_CB(skb)->free == NAPI_GRO_FREE_STOLEN_HEAD)
 			napi_skb_free_stolen_head(skb);
 		else
 			__kfree_skb(skb);
 		break;
 
-	case GRO_HELD:
+	case GRO_HELD://这个表示当前数据已经被GRO保存起来，但是并没有进行合并，因此skb还需要保存
 	case GRO_MERGED:
 	case GRO_CONSUMED:
 		break;

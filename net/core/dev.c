@@ -4128,12 +4128,12 @@ static int __dev_queue_xmit(struct sk_buff *skb, struct net_device *sb_dev)
 	else
 		skb_dst_force(skb);
 
-	txq = netdev_pick_tx(dev, skb, sb_dev);
-	q = rcu_dereference_bh(txq->qdisc);
+	txq = netdev_pick_tx(dev, skb, sb_dev);//查询网卡发送队列
+	q = rcu_dereference_bh(txq->qdisc);// 查询指针引用
 
 	trace_net_dev_queue(skb);
 	if (q->enqueue) {
-		rc = __dev_xmit_skb(skb, q, dev, txq);
+		rc = __dev_xmit_skb(skb, q, dev, txq);// 发送数据包
 		goto out;
 	}
 

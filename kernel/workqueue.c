@@ -1440,7 +1440,7 @@ retry:
 		struct worker *worker;
 
 		raw_spin_lock(&last_pool->lock);
-
+		//找个工人干活
 		worker = find_worker_executing_work(last_pool, work);
 
 		if (worker && worker->current_pwq->wq == wq) {

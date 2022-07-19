@@ -124,7 +124,7 @@ struct vring_virtqueue {
 	unsigned int num_added;//最近一次操作向队列中添加报文的数量
 
 	/* Last used index we've seen. */
-	u16 last_used_idx;//wlm:HW更新，通过比较 last_used_idx 与当前vring的used_idx确认中间的数据
+	u16 last_used_idx;//wlm:后端更新，通过比较 last_used_idx 与当前vring的used_idx确认中间的数据
 
 	union {
 		/* Available for split ring */
@@ -2350,10 +2350,10 @@ ssize_t get_vqs_data(struct device *_d, char *buf)
 	"vqid num_free last_used_idx used_idx used_flags avail_idx avail_flags\n");
 	list_for_each_entry(_vq, &dev->vqs, list) {
 		struct vring_virtqueue *vq = to_vvq(_vq);
-		// angus print one vq info,maybe overflow,
-		// need a len to protect.
+		//print one vq info,maybe overflow,
+		//need a len to protect.
 		len += sprintf(buf+len, "0x%04x, 0x%04x, 0x%04x, ",
-			vq->vq.index, vq->last_used_idx, vq->vq.num_free);
+			vq->vq.index, vq->vq.num_free, vq->last_used_idx);
 		len += sprintf(buf+len, "0x%04x, 0x%04x, 0x%04x, 0x%04x\n",
 				vq->split.vring.used->idx, vq->split.vring.used->flags,
 				vq->split.vring.avail->idx, vq->split.vring.avail->flags);

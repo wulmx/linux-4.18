@@ -127,6 +127,7 @@ static struct virtqueue *setup_vq(struct virtio_pci_device *vp_dev,
 	u64 q_pfn;
 
 	/* Select the queue we're interested in */
+	/* 把要配置的queue的index写入配置空间地址 */
 	iowrite16(index, vp_dev->ioaddr + VIRTIO_PCI_QUEUE_SEL);
 
 	/* Check if queue is either not available or already active. */

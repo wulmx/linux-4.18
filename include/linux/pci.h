@@ -484,7 +484,7 @@ struct pci_dev {
 	const struct attribute_group **msi_irq_groups;
 #endif
 	struct pci_vpd *vpd;
-#ifdef CONFIG_PCI_ATS
+#ifdef CONFIG_PCI_ATS //支持sriov的配置
 	union {
 		struct pci_sriov	*sriov;		/* PF: SR-IOV info */
 		struct pci_dev		*physfn;	/* VF: related PF */

@@ -145,7 +145,7 @@ vc4_atomic_complete_commit(struct drm_atomic_state *state)
 
 	drm_atomic_helper_wait_for_dependencies(state);
 
-	drm_atomic_helper_commit_modeset_disables(dev, state);
+	drm_atomic_helper_commit_m；odeset_disables(dev, state);
 
 	vc4_ctm_commit(vc4, state);
 

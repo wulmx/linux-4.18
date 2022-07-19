@@ -149,7 +149,7 @@ struct vhost_dev {
 	int nvqs;
 	struct eventfd_ctx *log_ctx;
 	struct llist_head work_list;
-	struct task_struct *worker;
+	struct task_struct *worker;//vhost-$pid 线程对应的worker
 	struct vhost_iotlb *umem;
 	struct vhost_iotlb *iotlb;
 	spinlock_t iotlb_lock;

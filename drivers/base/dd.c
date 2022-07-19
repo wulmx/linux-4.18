@@ -653,13 +653,13 @@ pinctrl_bind_failed:
 	dev_pm_set_driver_flags(dev, 0);
 
 	switch (ret) {
-	case -EPROBE_DEFER:
+	case -EPROBE_DEFER://驱动请求retry并推迟
 		/* Driver requested deferred probing */
 		dev_dbg(dev, "Driver %s requests probe deferral\n", drv->name);
 		driver_deferred_probe_add_trigger(dev, local_trigger_count);
 		break;
-	case -ENODEV:
-	case -ENXIO:
+	case -ENODEV://没有该设备
+	case -ENXIO://没有该设备地址
 		pr_debug("%s: probe of %s rejects match %d\n",
 			 drv->name, dev_name(dev), ret);
 		break;

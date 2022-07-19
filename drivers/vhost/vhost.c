@@ -587,6 +587,7 @@ long vhost_dev_set_owner(struct vhost_dev *dev)
 	vhost_attach_mm(dev);
 
 	if (dev->use_worker) {
+		/* 创建vhost-$pid内核线程 */
 		worker = kthread_create(vhost_worker, dev,
 					"vhost-%d", current->pid);
 		if (IS_ERR(worker)) {
@@ -602,7 +603,7 @@ long vhost_dev_set_owner(struct vhost_dev *dev)
 			goto err_cgroup;
 	}
 
-	err = vhost_dev_alloc_iovecs(dev);
+	err = vhost_dev_alloc_iovecs(dev);//为所有的vhost_virtqueue设置log、indirect等iovec读写向量
 	if (err)
 		goto err_cgroup;
 
@@ -1518,7 +1519,10 @@ static long vhost_vring_set_addr(struct vhost_dev *d,
 				vq->num * sizeof *vq->used->ring))
 			return -EINVAL;
 	}
-
+	/*
+	 * 以下吧内核态的vring的地址和qemu一致,
+	 * qemu的地址来自于前端guest中的driver这样vhost就和前端guest中的一致了
+	 */
 	vq->log_used = !!(a.flags & (0x1 << VHOST_VRING_F_LOG));
 	vq->desc = (void __user *)(unsigned long)a.desc_user_addr;
 	vq->avail = (void __user *)(unsigned long)a.avail_user_addr;
@@ -1538,7 +1542,7 @@ static long vhost_vring_set_num_addr(struct vhost_dev *d,
 	mutex_lock(&vq->mutex);
 
 	switch (ioctl) {
-	case VHOST_SET_VRING_NUM:
+	case VHOST_SET_VRING_NUM://设置vhost vring中的各个队列的个数
 		r = vhost_vring_set_num(d, vq, argp);
 		break;
 	case VHOST_SET_VRING_ADDR:
@@ -1581,7 +1585,7 @@ long vhost_vring_ioctl(struct vhost_dev *d, unsigned int ioctl, void __user *arg
 	mutex_lock(&vq->mutex);
 
 	switch (ioctl) {
-	case VHOST_SET_VRING_BASE:
+	case VHOST_SET_VRING_BASE://设置avail ring的base基址，即last_avail_idx
 		/* Moving base with an active backend?
 		 * You don't want to do that. */
 		if (vq->private_data) {
@@ -1606,7 +1610,7 @@ long vhost_vring_ioctl(struct vhost_dev *d, unsigned int ioctl, void __user *arg
 		if (copy_to_user(argp, &s, sizeof s))
 			r = -EFAULT;
 		break;
-	case VHOST_SET_VRING_KICK:
+	case VHOST_SET_VRING_KICK://设置前端（qemu中的）VirtQueue->host_notify的fd设置到vq->kick，并设置pollstart=1
 		if (copy_from_user(&f, argp, sizeof f)) {
 			r = -EFAULT;
 			break;
@@ -1618,11 +1622,11 @@ long vhost_vring_ioctl(struct vhost_dev *d, unsigned int ioctl, void __user *arg
 		}
 		if (eventfp != vq->kick) {
 			pollstop = (filep = vq->kick) != NULL;
-			pollstart = (vq->kick = eventfp) != NULL;
+			pollstart = (vq->kick = eventfp) != NULL;//设置pollstart=1
 		} else
 			filep = eventfp;
 		break;
-	case VHOST_SET_VRING_CALL:
+	case VHOST_SET_VRING_CALL://设置前端（qemu中的）VirtQueue->guest_notify的fd设置到vq->call
 		if (copy_from_user(&f, argp, sizeof f)) {
 			r = -EFAULT;
 			break;
@@ -1736,7 +1740,7 @@ long vhost_dev_ioctl(struct vhost_dev *d, unsigned int ioctl, void __user *argp)
 		goto done;
 
 	switch (ioctl) {
-	case VHOST_SET_MEM_TABLE:
+	case VHOST_SET_MEM_TABLE://将用户态的GVA即qemu中的HVA通知给内核态
 		r = vhost_set_memory(d, argp);
 		break;
 	case VHOST_SET_LOG_BASE:

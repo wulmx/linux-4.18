@@ -489,8 +489,8 @@ extern void wq_worker_comm(char *buf, size_t size, struct task_struct *task);
 
 /**
  * queue_work - queue work on a workqueue
- * @wq: workqueue to use
- * @work: work to queue
+ * @wq: workqueue to use 使用的队列
+ * @work: work to queue 
  *
  * Returns %false if @work was already on a queue, %true otherwise.
  *

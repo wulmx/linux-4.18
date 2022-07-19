@@ -543,7 +543,7 @@ static int virtio_pci_probe(struct pci_dev *pci_dev,
 		if (rc)
 			goto err_probe;
 	} else {
-		rc = virtio_pci_modern_probe(vp_dev);
+		rc = virtio_pci_modern_probe(vp_dev);//探测modern virtio设备
 		if (rc == -ENODEV)
 			rc = virtio_pci_legacy_probe(vp_dev);
 		if (rc)

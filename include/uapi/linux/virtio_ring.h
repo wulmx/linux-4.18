@@ -84,6 +84,17 @@
  * at the end of the avail ring. Host should ignore the avail->flags field. */
 /* The Host publishes the avail index for which it expects a kick
  * at the end of the used ring. Guest should ignore the used->flags field. */
+/*
+ * VIRTIO_RING_F_EVENT_IDX特性未被协商，设备须将used ring中的flags置为0或1（1表示通知设备不需要中断），
+ * 驱动须忽略used ring中的avail_event，在驱动向available ring写描述符之后，驱动读取used ring中的flags，
+ * 若flags为1则表示驱动不应发送通知（0表示驱动必须发送），若VIRTIO_RING_F_EVENT_IDX特性被协商，
+ * 设备须将used ring中的flags置为0，驱动须忽略used ring中的flags，驱动读取used ring中的idx和avail_event，
+ * idx不等于 avail_event时不应发送通知（ 等于表示必须发送通知）。需要驱动通知时，驱动向队列通知地址中
+ * 写入16-bit索引，设备使用VIRTIO_PCI_CAP_NOTIFY_CFG能力，队列通知地址为
+ * cap.offset + queue_notify_off * notify_off_multiplier，
+ * 通过读取此地址的值判定是发哪个队列发包，而legacy则是驱动将16-bit索引写入到第一个io空间的virtio头
+ * 的Queue Notify中；
+ */
 #define VIRTIO_RING_F_EVENT_IDX		29
 
 /* Virtio ring descriptors: 16 bytes.  These can chain together via "next". */

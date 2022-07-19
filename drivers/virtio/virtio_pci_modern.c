@@ -50,7 +50,7 @@ static int vp_finalize_features(struct virtio_device *vdev)
 
 	/* Give virtio_pci a chance to accept features. */
 	vp_transport_features(vdev, features);
-
+	//测试bit位VIRTIO_F_VERSION_1 32是否为1
 	if (!__virtio_test_bit(vdev, VIRTIO_F_VERSION_1)) {
 		dev_err(&vdev->dev, "virtio: device uses modern interface "
 			"but does not have VIRTIO_F_VERSION_1\n");
@@ -202,6 +202,7 @@ static struct virtqueue *setup_vq(struct virtio_pci_device *vp_dev,
 		return ERR_PTR(-ENOENT);
 
 	/* Check if queue is either not available or already active. */
+	/* num=0说明queue不可用，或者地址费控说明被占用 */
 	num = vp_modern_get_queue_size(mdev, index);//选择要操作的queue并返回queue size
 	if (!num || vp_modern_get_queue_enable(mdev, index))//使能queue
 		return ERR_PTR(-ENOENT);
@@ -435,7 +436,7 @@ int virtio_pci_modern_probe(struct virtio_pci_device *vp_dev)
 		vp_dev->vdev.config = &virtio_pci_config_nodev_ops;
 
 	vp_dev->config_vector = vp_config_vector;
-	vp_dev->setup_vq = setup_vq;
+	vp_dev->setup_vq = setup_vq;//设置回调函数
 	vp_dev->del_vq = del_vq;
 	vp_dev->isr = mdev->isr;
 	vp_dev->vdev.id = mdev->id;

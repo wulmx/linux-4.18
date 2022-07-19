@@ -148,16 +148,16 @@ struct virtio_pci_common_cfg {
 	__le32 guest_feature_select;	/* read-write */
 	__le32 guest_feature;		/* read-write */
 	__le16 msix_config;		/* read-write */
-	__le16 num_queues;		/* read-only */
+	__le16 num_queues;		/* read-only modern独有功能，表示设备支持最大virtqueue个数*/
 	__u8 device_status;		/* read-write */
-	__u8 config_generation;		/* read-only */
+	__u8 config_generation;		/* read-only modern独有功能，表示驱动读device-specific配置空间中已变化的值的次数 */
 
 	/* About a specific virtqueue. */
 	__le16 queue_select;		/* read-write */
 	__le16 queue_size;		/* read-write, power of 2. */
 	__le16 queue_msix_vector;	/* read-write */
-	__le16 queue_enable;		/* read-write */
-	__le16 queue_notify_off;	/* read-only */
+	__le16 queue_enable;		/* read-write modern独有功能，表示设备访问驱动队列的权限（1表示使能，0表示去使能）*/
+	__le16 queue_notify_off;	/* read-only modern独有，用来计算发包时驱动通知设备的地址，legacy中的Queue Address使用queue_desc、queue_avail以及queue_used代替*/
 	__le32 queue_desc_lo;		/* read-write */
 	__le32 queue_desc_hi;		/* read-write */
 	__le32 queue_avail_lo;		/* read-write */

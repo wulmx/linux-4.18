@@ -178,7 +178,7 @@ EXPORT_SYMBOL_GPL(virtio_add_status);
 
 int virtio_finalize_features(struct virtio_device *dev)
 {
-	int ret = dev->config->finalize_features(dev);
+	int ret = dev->config->finalize_features(dev);//callback vp_finalize_features
 	unsigned status;
 
 	might_sleep();
@@ -190,7 +190,7 @@ int virtio_finalize_features(struct virtio_device *dev)
 
 	virtio_add_status(dev, VIRTIO_CONFIG_S_FEATURES_OK);
 	status = dev->config->get_status(dev);
-	if (!(status & VIRTIO_CONFIG_S_FEATURES_OK)) {
+	if (!(status & VIRTIO_CONFIG_S_FEATURES_OK)) {//读取寄存器状态无VIRTIO_CONFIG_S_FEATURES_OK
 		dev_err(&dev->dev, "virtio: device refuses features: %x\n",
 			status);
 		return -ENODEV;
@@ -209,7 +209,7 @@ static int virtio_dev_probe(struct device *_d)
 	u64 driver_features_legacy;
 
 	/* We have a driver! */
-	virtio_add_status(dev, VIRTIO_CONFIG_S_DRIVER);
+	virtio_add_status(dev, VIRTIO_CONFIG_S_DRIVER);//置位状态，知道是什么驱动
 
 	/* Figure out what features the device supports. 
 	 * 回调函数vp_get_features->vp_modern_get_features
@@ -257,7 +257,7 @@ static int virtio_dev_probe(struct device *_d)
 	if (err)
 		goto err;
 
-	err = drv->probe(dev);
+	err = drv->probe(dev); //virtio_drive回调函数 virtnet_probe 或者 virtblk_probe
 	if (err)
 		goto err;
 
@@ -331,8 +331,8 @@ int register_virtio_device(struct virtio_device *dev)
 {
 	int err;
 
-	dev->dev.bus = &virtio_bus;
-	device_initialize(&dev->dev);
+	dev->dev.bus = &virtio_bus; //设置virtio  bus
+	device_initialize(&dev->dev);//会调用virtio_dev_probe
 
 	/* Assign a unique device index and hence name. */
 	err = ida_simple_get(&virtio_index_ida, 0, 0, GFP_KERNEL);

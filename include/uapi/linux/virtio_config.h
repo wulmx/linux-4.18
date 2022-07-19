@@ -33,6 +33,7 @@
 
 /* Status byte for guest to report progress, and synchronize features.
  * 以下状态位用于标记 virtio_pci_common_cfg->device_status用来标记设备状态
+ * 如果设备正常我们能看到的 /sys/bus/virtio/devices/virtio0/status 值为0xf=1+2+4+8=15
  */
 /* We have seen device and processed generic fields (VIRTIO_CONFIG_F_VIRTIO) */
 #define VIRTIO_CONFIG_S_ACKNOWLEDGE	1 //标记Guest已经发现了设备并识别到它是一个virtio设备

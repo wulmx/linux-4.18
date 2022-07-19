@@ -1557,7 +1557,7 @@ static int xmit_skb(struct send_queue *sq, struct sk_buff *skb)
 			return num_sg;
 		num_sg++;
 	}
-	return virtqueue_add_outbuf(sq->vq, sq->sg, num_sg, skb, GFP_ATOMIC);
+	return virtqueue_add_outbuf(sq->vq, sq->sg, num_sg, skb, GFP_ATOMIC);//wlm：转成网络包后发出
 }
 
 static netdev_tx_t start_xmit(struct sk_buff *skb, struct net_device *dev)
@@ -2494,10 +2494,10 @@ static int virtnet_get_phys_port_name(struct net_device *dev, char *buf,
 static const struct net_device_ops virtnet_netdev = {
 	.ndo_open            = virtnet_open,
 	.ndo_stop   	     = virtnet_close,
-	.ndo_start_xmit      = start_xmit,
+	.ndo_start_xmit      = start_xmit,//发包函数
 	.ndo_validate_addr   = eth_validate_addr,
 	.ndo_set_mac_address = virtnet_set_mac_address,
-	.ndo_set_rx_mode     = virtnet_set_rx_mode,
+	.ndo_set_rx_mode     = virtnet_set_rx_mode,//控制网卡的接收模式,设置NIC地址过滤表，除了自己地址和广播外，额外接收哪些硬件地址
 	.ndo_get_stats64     = virtnet_stats,
 	.ndo_vlan_rx_add_vid = virtnet_vlan_rx_add_vid,
 	.ndo_vlan_rx_kill_vid = virtnet_vlan_rx_kill_vid,
@@ -2699,8 +2699,8 @@ static int virtnet_find_vqs(struct virtnet_info *vi)
 
 	/* Allocate/initialize parameters for send/receive virtqueues */
 	for (i = 0; i < vi->max_queue_pairs; i++) {
-		callbacks[rxq2vq(i)] = skb_recv_done;
-		callbacks[txq2vq(i)] = skb_xmit_done;
+		callbacks[rxq2vq(i)] = skb_recv_done;//接收队列rxq注册了skb_recv_done函数用于在接收队列收到数据包后调用
+		callbacks[txq2vq(i)] = skb_xmit_done;//发送
 		sprintf(vi->rq[i].name, "input.%d", i);
 		sprintf(vi->sq[i].name, "output.%d", i);
 		names[rxq2vq(i)] = vi->rq[i].name;

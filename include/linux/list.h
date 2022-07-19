@@ -484,6 +484,11 @@ static inline void list_splice_tail_init(struct list_head *list,
 }
 
 /**
+ * 
+ * list_entry(ptr,type,member)宏的功能就是，由结构体成员地址求结构体地址。
+ * 其中ptr 是所求结构体中list_head成员指针，
+ * type是所求结构体类型，
+ * member是结构体list_head成员名。
  * list_entry - get the struct for this entry
  * @ptr:	the &struct list_head pointer.
  * @type:	the type of the struct this is embedded in.

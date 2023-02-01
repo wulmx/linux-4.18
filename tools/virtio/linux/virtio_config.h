@@ -51,7 +51,7 @@ static inline bool virtio_has_dma_quirk(const struct virtio_device *vdev)
 	 * Note the reverse polarity of the quirk feature (compared to most
 	 * other features), this is for compatibility with legacy systems.
 	 */
-	return !virtio_has_feature(vdev, VIRTIO_F_ACCESS_PLATFORM);//wlm:没有iommu就是DMA
+	return !virtio_has_feature(vdev, VIRTIO_F_ACCESS_PLATFORM);//wlm:如果有VIRTIO_F_ACCESS_PLATFORM就表示没有iommu而使用DMA引擎
 }
 
 static inline bool virtio_is_little_endian(struct virtio_device *vdev)

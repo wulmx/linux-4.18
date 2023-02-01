@@ -281,7 +281,7 @@ void vp_del_vqs(struct virtio_device *vdev)
 
 static int vp_find_vqs_msix(struct virtio_device *vdev, unsigned nvqs,
 		struct virtqueue *vqs[], vq_callback_t *callbacks[],
-		const char * const names[], bool per_vq_vectors,
+		const char * const names[], bool per_vq_vectors, //true一个vq对应一个vectors
 		const bool *ctx,
 		struct irq_affinity *desc)
 {

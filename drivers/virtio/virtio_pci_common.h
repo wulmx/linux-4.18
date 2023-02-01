@@ -55,7 +55,7 @@ struct virtio_pci_device {
 
 	/* Legacy only field */
 	/* the IO mapping for the PCI config space */
-	void __iomem *ioaddr;
+	void __iomem *ioaddr;//legacy bar0 基地址
 
 	/* a list of queues so we can dispatch IRQs */
 	spinlock_t lock;
@@ -74,7 +74,7 @@ struct virtio_pci_device {
 	/* Number of available vectors */
 	unsigned msix_vectors;
 	/* Vectors allocated, excluding per-vq vectors if any */
-	unsigned msix_used_vectors;
+	unsigned msix_used_vectors;//mscx 使用的中断向量
 
 	/* Whether we have vector per vq */
 	bool per_vq_vectors;

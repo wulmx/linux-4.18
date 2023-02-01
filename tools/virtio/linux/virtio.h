@@ -20,8 +20,8 @@ struct virtqueue {//wlm: crash时 gendisk 的private成员变量就是virtqueue
 	void (*callback)(struct virtqueue *vq);
 	const char *name;
 	struct virtio_device *vdev;
-        unsigned int index;
-        unsigned int num_free;
+    unsigned int index;
+    unsigned int num_free;
 	void *priv;
 };
 

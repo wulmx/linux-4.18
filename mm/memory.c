@@ -3783,7 +3783,7 @@ static vm_fault_t do_read_fault(struct vm_fault *vmf)
 	vm_fault_t ret = 0;
 
 	/*
-	 * Let's call ->map_pages() first and use ->fault() as fallback
+	 * Let's call s() first and use ->fault() as fallback
 	 * if page by the offset is not ready to be mapped (cold cache or
 	 * something).
 	 */

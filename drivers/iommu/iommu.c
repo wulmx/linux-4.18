@@ -147,9 +147,10 @@ static int __init iommu_subsys_init(void)
 	bool cmd_line = iommu_cmd_line_dma_api();
 
 	if (!cmd_line) {
-		if (IS_ENABLED(CONFIG_IOMMU_DEFAULT_PASSTHROUGH))
+		/* 这个分支type 是 identity ，表示不会经过iommu 翻译 */
+		if (IS_ENABLED(CONFIG_IOMMU_DEFAULT_PASSTHROUGH))//如果内核参数开启这个CONFIG_IOMMU_DEFAULT_PASSTHROUGH选项则走passthrough
 			iommu_set_default_passthrough(false);
-		else
+		else//这个分支type 是 dma ，表示会经过iommu 翻译
 			iommu_set_default_translated(false);
 
 		if (iommu_default_passthrough() && mem_encrypt_active()) {

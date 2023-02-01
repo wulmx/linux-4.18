@@ -87,7 +87,7 @@ struct virtnet_sq_stats {
 	u64 bytes;
 	u64 xdp_tx;
 	u64 xdp_tx_drops;
-	u64 kicks;
+	u64 kicks;//rq 的kick数量
 };
 
 struct virtnet_rq_stats {
@@ -99,7 +99,7 @@ struct virtnet_rq_stats {
 	u64 xdp_tx;
 	u64 xdp_redirects;
 	u64 xdp_drops;
-	u64 kicks;
+	u64 kicks;// rcq 的kick数量
 };
 
 #define VIRTNET_SQ_STAT(m)	offsetof(struct virtnet_sq_stats, m)
@@ -188,10 +188,10 @@ struct control_buf {
 
 struct virtnet_info {
 	struct virtio_device *vdev;
-	struct virtqueue *cvq;
+	struct virtqueue *cvq;//控制队列
 	struct net_device *dev;
-	struct send_queue *sq;
-	struct receive_queue *rq;
+	struct send_queue *sq;//tx 队列
+	struct receive_queue *rq;//rx 队列
 	unsigned int status;
 
 	/* Max # of queue pairs supported by the device */
@@ -1218,6 +1218,7 @@ static int add_recvbuf_mergeable(struct virtnet_info *vi,
 }
 
 /* 前端通过NAPI接收数据时，会在可用buffer不足的时候调用函数添加buffer
+ * 主要用于接收路径
  * Returns false if we couldn't fill entirely (OOM).
  *
  * Normally run in the receive path, but can also be run from ndo_open
@@ -1669,6 +1670,8 @@ static bool virtnet_send_command(struct virtnet_info *vi, u8 class, u8 cmd,
 
 	/* Spin for a response, the kick causes an ioport write, trapping
 	 * into the hypervisor, so the request should be handled immediately.
+	 * 等待后端返回，如果没返回会发生软锁
+	 * 含义是只要取不到buf就一直spin 读内存,
 	 */
 	while (!virtqueue_get_buf(vi->cvq, &tmp) &&
 	       !virtqueue_is_broken(vi->cvq))

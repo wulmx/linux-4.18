@@ -109,6 +109,8 @@ pci_dma_mapping_error(struct pci_dev *pdev, dma_addr_t dma_addr)
 	return dma_mapping_error(&pdev->dev, dma_addr);
 }
 
+/*pci_set_dma_mask()和dma_set_mask()辅助函数用于检查总线是否可以接收给定大小的总线地址(mask)，
+如果可以，则通知总线层给定的外围设备将使用该大小的总线地址*/
 #ifdef CONFIG_PCI
 static inline int pci_set_dma_mask(struct pci_dev *dev, u64 mask)
 {

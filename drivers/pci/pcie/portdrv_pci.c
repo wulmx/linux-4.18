@@ -195,6 +195,7 @@ static void pcie_portdrv_err_resume(struct pci_dev *dev)
 
 /*
  * LINUX Device Driver Model
+ * 支持设备类型 PCI-Express port、PCI-to-PCI bridge、Root Complex Event Collector
  */
 static const struct pci_device_id port_pci_ids[] = {
 	/* handle any PCI-Express port */
@@ -212,7 +213,12 @@ static const struct pci_error_handlers pcie_portdrv_err_handler = {
 	.mmio_enabled = pcie_portdrv_mmio_enabled,
 	.resume = pcie_portdrv_err_resume,
 };
-
+/* PCI Express Port Bus Driver作用
+PCIe port包含Root Port and the Switch Port, switch port又分为Upstream Port和Downstream Port。
+PCIe port通常提供多个高级服务，如native hotplug support (HP), power management event support (PME), 
+advanced error reporting support (AER), and Downstream Port Containment(DPC)。
+PCIe port bus driver就是提供PCIe port driver设备的创建，中断申请，为PCIe高级服务做好基础准备。
+*/
 static struct pci_driver pcie_portdriver = {
 	.name		= "pcieport",
 	.id_table	= &port_pci_ids[0],

@@ -279,7 +279,7 @@ static int put_compat_statfs(struct compat_statfs __user *ubuf, struct kstatfs *
 	return 0;
 }
 
-/*
+/* 系统调用用于查看文件系统的相关属性， 例如用户态 df 命令就会调用
  * The following statfs calls are copies of code from fs/statfs.c and
  * should be checked against those from time to time
  */

@@ -322,10 +322,10 @@ struct pci_dev {
 	struct pci_slot	*slot;		/* Physical slot this device is in */
 
 	unsigned int	devfn;		/* Encoded device & function index */
-	unsigned short	vendor;
-	unsigned short	device;
+	unsigned short	vendor;	/* 表示PCI设备的厂商ID */
+	unsigned short	device; /* vendor id */
 	unsigned short	subsystem_vendor;
-	unsigned short	subsystem_device;
+	unsigned short	subsystem_device; /* 这是一个16无符号整数，表示PCI设备的子系统厂商ID */
 	unsigned int	class;		/* 3 bytes: (base,sub,prog-if) */
 	u8		revision;	/* PCI revision, low byte of class word */
 	u8		hdr_type;	/* PCI header type (`multi' flag masked out) */

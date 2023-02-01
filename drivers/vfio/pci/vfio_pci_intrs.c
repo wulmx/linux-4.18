@@ -237,7 +237,10 @@ static void vfio_intx_disable(struct vfio_pci_device *vdev)
 }
 
 /*
- * MSI/MSI-X
+ * MSI/MSI-X 
+ * 主要作用就是通过eventfd_signal激活irqfd_inject，
+ * 然后会调用 deliver_posted_interrupt向虚机注入中断，
+ * 中断号即为虚机配置透传设备时的中断号。
  */
 static irqreturn_t vfio_msihandler(int irq, void *arg)
 {

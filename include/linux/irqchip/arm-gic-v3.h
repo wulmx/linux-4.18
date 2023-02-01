@@ -378,23 +378,23 @@
  */
 #define GITS_CTLR			0x0000
 #define GITS_IIDR			0x0004
-#define GITS_TYPER			0x0008
+#define GITS_TYPER			0x0008//指定ITS支持的特性
 #define GITS_MPIDR			0x0018
 #define GITS_CBASER			0x0080
-#define GITS_CWRITER			0x0088
-#define GITS_CREADR			0x0090
-#define GITS_BASER			0x0100
+#define GITS_CWRITER			0x0088//指定了软件写下一个命令free entry的基地址偏移
+#define GITS_CREADR			0x0090//指定了ITS读取下一个命令的基地址偏移；
+#define GITS_BASER			0x0100//GITS_BASER<n>寄存器提供架构相应的ITS内存结构体的类型，大小和访问属性
 #define GITS_IDREGS_BASE		0xffd0
 #define GITS_PIDR0			0xffe0
 #define GITS_PIDR1			0xffe4
-#define GITS_PIDR2			GICR_PIDR2
+#define GITS_PIDR2			GICR_PIDR2//可以从GITS_IIDR和GITS_PIDR2中读取版本
 #define GITS_PIDR4			0xffd0
 #define GITS_CIDR0			0xfff0
 #define GITS_CIDR1			0xfff4
 #define GITS_CIDR2			0xfff8
 #define GITS_CIDR3			0xfffc
 
-#define GITS_TRANSLATER			0x10040
+#define GITS_TRANSLATER			0x10040//接受EventID信息。由实现定义DeviceID是如何提供的
 
 #define GITS_SGIR			0x20020
 
@@ -454,7 +454,7 @@
 
 #define GITS_BASER_NR_REGS		8
 
-#define GITS_BASER_VALID			(1ULL << 63)
+#define GITS_BASER_VALID			(1ULL << 63)//该域表明了ITS命令队列分配的内存。
 #define GITS_BASER_INDIRECT			(1ULL << 62)
 
 #define GITS_BASER_INNER_CACHEABILITY_SHIFT	(59)
@@ -466,7 +466,7 @@
 	GIC_BASER_CACHEABILITY(GITS_BASER, OUTER, MASK)
 #define GITS_BASER_SHAREABILITY_MASK					\
 	GIC_BASER_SHAREABILITY(GITS_BASER, SHAREABILITY_MASK)
-
+/* Cacheability。该域表明了ITS命令队列的访问cacheability属性*/
 #define GITS_BASER_nCnB		GIC_BASER_CACHEABILITY(GITS_BASER, INNER, nCnB)
 #define GITS_BASER_nC		GIC_BASER_CACHEABILITY(GITS_BASER, INNER, nC)
 #define GITS_BASER_RaWt		GIC_BASER_CACHEABILITY(GITS_BASER, INNER, RaWt)

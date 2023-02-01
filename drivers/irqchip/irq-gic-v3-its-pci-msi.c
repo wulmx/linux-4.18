@@ -179,7 +179,7 @@ its_pci_msi_parse_madt(union acpi_subtable_headers *header,
 
 	err = its_pci_msi_init_one(dom_handle, node_name);
 	if (!err)
-		pr_info("PCI/MSI: %s domain created\n", node_name);
+		pr_info("PCI/MSI: %s domain created\n", node_name);//node_name 后面的是基地址
 
 out:
 	kfree(node_name);

@@ -161,7 +161,11 @@ struct vring_virtqueue {
 
 			/* Driver ring wrap counter. */
 			bool avail_wrap_counter;
-
+			/* 
+			 * 为了解决desc ring套圈问题，引入两个wrap counter，
+			 * 分别对应 Driver Ring Wrap Counters和 Device Ring Wrap Counters
+			 * 即 avail_wrap_counter 和 used_wrap_counter
+			 */
 			/* Device ring wrap counter. */
 			bool used_wrap_counter;
 
@@ -285,11 +289,11 @@ EXPORT_SYMBOL_GPL(virtio_max_dma_size);
 static void *vring_alloc_queue(struct virtio_device *vdev, size_t size,
 			      dma_addr_t *dma_handle, gfp_t flag)
 {
-	if (vring_use_dma_api(vdev)) {
+	if (vring_use_dma_api(vdev)) {//3.10 是不支持这个的
 		return dma_alloc_coherent(vdev->dev.parent, size,
 					  dma_handle, flag);
 	} else {
-		void *queue = alloc_pages_exact(PAGE_ALIGN(size), flag);
+		void *queue = alloc_pages_exact(PAGE_ALIGN(size), flag);//通过alloc_pages_exact向伙伴系统分配了不小于size的连续物理内存
 
 		if (queue) {
 			phys_addr_t phys_addr = virt_to_phys(queue);

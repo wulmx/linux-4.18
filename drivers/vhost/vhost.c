@@ -1010,7 +1010,7 @@ static inline int vhost_get_avail_head(struct vhost_virtqueue *vq,
 				       __virtio16 *head, int idx)
 {
 	return vhost_get_avail(vq, *head,
-			       &vq->avail->ring[idx & (vq->num - 1)]);
+			       &vq->avail->ring[idx & (vq->num - 1)]);//后面的全部取1是为了保证last_avail_idx在size的范围内
 }
 
 static inline int vhost_get_avail_flags(struct vhost_virtqueue *vq,

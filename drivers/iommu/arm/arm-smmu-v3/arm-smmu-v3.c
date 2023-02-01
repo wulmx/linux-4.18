@@ -1365,7 +1365,19 @@ static irqreturn_t arm_smmu_evtq_thread(int irq, void *dev)
 	do {
 		while (!queue_remove_raw(q, evt)) {
 			u8 id = FIELD_GET(EVTQ_0_ID, evt[0]);
-
+			/* event 10表示地址错误，
+			[   49.259019] arm-smmu-v3 arm-smmu-v3.0.auto: event 0x10 received:
+[   49.265003] arm-smmu-v3 arm-smmu-v3.0.auto:  0x00001e0000000010, 
+												高32位位stream id,就代表bdf号是1300
+[   49.270905] arm-smmu-v3 arm-smmu-v3.0.auto:  0x0000020800000000
+[   49.276796] arm-smmu-v3 arm-smmu-v3.0.auto:  0x0000002109762000
+[   49.282690] arm-smmu-v3 arm-smmu-v3.0.auto:  0x0000002109762000
+[   49.288584] arm-smmu-v3 arm-smmu-v3.0.auto: event 0x10 received:
+[   49.294562] arm-smmu-v3 arm-smmu-v3.0.auto:  0x00001e0000000010
+[   49.300456] arm-smmu-v3 arm-smmu-v3.0.auto:  0x0000020800000000
+[   49.306346] arm-smmu-v3 arm-smmu-v3.0.auto:  0x0000002109762000
+[   49.312242] arm-smmu-v3 arm-smmu-v3.0.auto:  0x0000002109762000
+			*/
 			dev_info(smmu->dev, "event 0x%02x received:\n", id);
 			for (i = 0; i < ARRAY_SIZE(evt); ++i)
 				dev_info(smmu->dev, "\t0x%016llx\n",

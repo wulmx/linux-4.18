@@ -125,13 +125,13 @@ static inline int virtio_pci_find_capability(struct pci_dev *dev, u8 cfg_type,
 
 		if (type == cfg_type) {
 			if (pci_resource_len(dev, bar) &&
-			    pci_resource_flags(dev, bar) & ioresource_types) {
+			    pci_resource_flags(dev, bar) & ioresource_types) {//判断resource 不为空且flag存在 io、mem配置则说明是modern
 				*bars |= (1 << bar);
 				return pos;
 			}
 		}
 	}
-	return 0;
+	return 0;//返回0就是进入legacy 的驱动
 }
 
 /* This is part of the ABI.  Don't screw with it. */
@@ -290,7 +290,7 @@ int vp_modern_probe(struct virtio_pci_modern_device *mdev)
 	pci_read_config_dword(pci_dev,
 			      notify + offsetof(struct virtio_pci_notify_cap,
 						notify_off_multiplier),
-			      &mdev->notify_offset_multiplier);
+			      &mdev->notify_offset_multiplier);//读取并设置 notify_offset_multiplier 地址，用于notify，如果notify_offset_multiplier为0 所有notify到第一个队列会造成性能影响
 	/* Read notify length and offset from config space. */
 	pci_read_config_dword(pci_dev,
 			      notify + offsetof(struct virtio_pci_notify_cap,

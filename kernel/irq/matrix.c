@@ -26,10 +26,10 @@ struct irq_matrix {
 	unsigned int		alloc_start;
 	unsigned int		alloc_end;
 	unsigned int		alloc_size;
-	unsigned int		global_available;
+	unsigned int		global_available;//剩下可以分配的irq
 	unsigned int		global_reserved;
 	unsigned int		systembits_inalloc;
-	unsigned int		total_allocated;
+	unsigned int		total_allocated;//已经分配了的
 	unsigned int		online_maps;
 	struct cpumap __percpu	*maps;
 	unsigned long		scratch_map[IRQ_MATRIX_SIZE];
@@ -277,7 +277,7 @@ void irq_matrix_remove_managed(struct irq_matrix *m, const struct cpumask *msk)
 	}
 }
 
-/**
+/** 从中断矩阵（matrix）中申请一个中断
  * irq_matrix_alloc_managed - Allocate a managed interrupt in a CPU map
  * @m:		Matrix pointer
  * @cpu:	On which CPU the interrupt should be allocated

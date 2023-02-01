@@ -253,6 +253,7 @@ struct vfio_region_info {
 	__u64	size;		/* Region size (bytes) */
 	__u64	offset;		/* Region offset from start of device fd */
 };
+/* wlm: 用来获得设备指定区域region的数据，这里的region 不仅仅是指bar 空间还包括rom空间和配置空间。 */
 #define VFIO_DEVICE_GET_REGION_INFO	_IO(VFIO_TYPE, VFIO_BASE + 8)
 
 /*

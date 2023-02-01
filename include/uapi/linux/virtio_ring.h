@@ -38,13 +38,36 @@
 #include <linux/virtio_types.h>
 
 /* This marks a buffer as continuing via the next field. */
+/* VIRTQ_DESC_F_NEXT 只有在avail desc中有意义，用于支持Descriptor Chain，在used desc中没有意义；
+使用方法
+当驱动在一次请求中写入多个buffer元素 时，需要设置avail desc中flags 对应VIRTQ_DESC_F_NEXT位，
+具体操作步骤如下：
+驱动延时更新第一个desc 的flags，即desc 链中其他desc的flags全部更新完再更新第一个desc链中第一
+的desc的flags，这样可以保证后面看到的是完整的desc 链表；
+buffer id 包含再desc chain 的最后一个desc中；
+desc chain 中每个desc 要合理正确设置VIRTQ_DESC_F_AVAIL, VIRTQ_DESC_F_USED, VIRTQ_DESC_F_WRITE ；
+设备处理完当前请求desc list 所有元素只回写一个used desc，
+向前跳过desc chain 所有元素在desc ring中写入used desc，驱动也能根据desc chain bufferid
+算出desc chain的大小以便找到设备写入desc ring 中used desc的位置。*/
 #define VRING_DESC_F_NEXT	1
-/* This marks a buffer as write-only (otherwise read-only). */
+/* This marks a buffer as write-only (otherwise read-only). 
+ * 对于avail desc这个flag用来标记其关联的buffer是只读的还是只写的；
+ * 对于used desc这个flag用来表示去关联的buffer是否有被后端（device）写入数据；
+ */
 #define VRING_DESC_F_WRITE	2
-/* This means the buffer contains a list of buffer descriptors. */
+/* This means the buffer contains a list of buffer descriptors. 
+首先driver 分配一个 indirect desc 的空间，它和普通的packed virtqueue desc中的布局是完全相同的，
+对于device来说只读；
+设置每一个indirect desc指向的buffer信息，和普通的packed virtqueue desc 设置相同，
+包括addr(buffer),len(buffer),bufferid(buffer);
+设置main  virtqueue desc 的addr(indirect desc),len(indirect desc)，bufferid 无效;
+设置main virtqueue desc flags ，flags|VIRTQ_DESC_F_INDIRECT；
+设置flags|VIRTQ_DESC_F_INDIRECT后，即使desc 设置了VIRTQ_DESC_F_WRITE，VIRTQ_DESC_F_WRITE对device
+来说也是无效的*/
 #define VRING_DESC_F_INDIRECT	4
 
-/*
+/* 1.1 spec用来区分驱动还是设备的ring ， 即 是avail 还是 used
+ * 区别于0.95 中的split ring
  * Mark a descriptor as available or used in packed ring.
  * Notice: they are defined as shifts instead of shifted values.
  */
@@ -106,13 +129,21 @@ struct vring_desc {
 	/* The flags as indicated above. */
 	__virtio16 flags;
 	/* We chain unused descriptors via this, too */
-	__virtio16 next;
+	__virtio16 next;//记录chain中下一个desc idx
 };
 
 struct vring_avail {
-	__virtio16 flags;
+	__virtio16 flags; //驱动使用这个标志告诉device 当消费一个buffer时不要中断
+	/* 
+	 * 记录最后一个可用的desc, avail->idx 不是desc ring的idx，而是avail->ring的idx
+	 * 对后端来说对应的avail->ring[idx]表示最后一个可用的（对前端来说是下一个可用）desc chain的header idx
+	 */
 	__virtio16 idx;
-	__virtio16 ring[];
+	/*
+	 * 对后端来说vring_avail->ring[vhost_virtqueue->last_avail_idx]表示首个可用的desc的idx
+	 * 对后端来说vring_avail->ring[vhost_virtqueue->avail->idx]表示最后一个可用的desc的idx
+	 */
+	__virtio16 ring[];//
 };
 
 /* u32 is used here for ids for padding reasons. */
@@ -124,13 +155,18 @@ struct vring_used_elem {
 };
 
 struct vring_used {
-	__virtio16 flags;
+	__virtio16 flags;//告诉驱动当消费一个buffer不要中断
 	__virtio16 idx;
-	struct vring_used_elem ring[];
+	/*
+	 * last_used_idx记录的也不是desc ring的idx，而是used->ring的idx，
+	 * 对应used->ring[idx]记录的是上一次后端已经处理好可以给前端释放（对于guest rx来说）
+	 * 的desc chain的header idx。
+	 */
+	struct vring_used_elem ring[];//存放desc的数据
 };
 
 struct vring {
-	unsigned int num;
+	unsigned int num;//desc 的个数
 
 	struct vring_desc *desc;
 
@@ -173,7 +209,10 @@ struct vring {
  * };
  */
 /* We publish the used event index at the end of the available ring, and vice
- * versa. They are at the end for backwards compatibility. */
+ * versa. They are at the end for backwards compatibility. 
+ * used event index 事件通知放在最后一个avail desc 中， 反之亦然是指avail event index 
+ * 也是放在 used ring中的最后一个 desc中，
+ */
 #define vring_used_event(vr) ((vr)->avail->ring[(vr)->num])
 #define vring_avail_event(vr) (*(__virtio16 *)&(vr)->used->ring[(vr)->num])
 
@@ -218,12 +257,19 @@ struct vring_packed_desc_event {
 };
 
 struct vring_packed_desc {
+	/* 相对split addr和len名字和含义保持不变,
+	 * 去掉了next，因为desc chain一定是相邻的，而split因为不通的ring可能是不相邻
+	 */
 	/* Buffer Address. */
 	__le64 addr;
-	/* Buffer Length. */
+	/* Buffer Length. 
+	 * 对于avail desc，len表示desc关联的buffer中被写入的数据长度；
+	 * 对于uesd desc，当VIRTQ_DESC_F_WRITE被设置时，len表示后端（device）
+	 * 写入数据的长度，当VIRTQ_DESC_F_WRITE没有被设置时，len没有意义
+	 */
 	__le32 len;
 	/* Buffer ID. */
-	__le16 id;
+	__le16 id;//buffer id，注意不是desc的下标idx。
 	/* The flags depending on descriptor type. */
 	__le16 flags;
 };

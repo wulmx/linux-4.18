@@ -131,7 +131,7 @@ static irqreturn_t virtio_vdpa_virtqueue_cb(void *private)
 }
 
 static struct virtqueue *
-virtio_vdpa_setup_vq(struct virtio_device *vdev, unsigned int index,
+virtio_vdpa_setup_vq(struct virtio_device *vdev, unsigned int index,//vhost vdpa里面没有这些ops，因为vhost vdpa只是个通道，真正的setup vq都是在qemu里面实现
 		     void (*callback)(struct virtqueue *vq),
 		     const char *name, bool ctx)
 {
@@ -168,7 +168,7 @@ virtio_vdpa_setup_vq(struct virtio_device *vdev, unsigned int index,
 
 	/* Create the vring */
 	align = ops->get_vq_align(vdpa);
-	vq = vring_create_virtqueue(index, num, align, vdev,
+	vq = vring_create_virtqueue(index, num, align, vdev,//这里的num就是vring 结构体中的num， 含义就是 desc ring size
 				    true, true, ctx,
 				    virtio_vdpa_notify, callback, name);
 	if (!vq) {

@@ -81,7 +81,7 @@ static void vp_set(struct virtio_device *vdev, unsigned offset,
 static u8 vp_get_status(struct virtio_device *vdev)
 {
 	struct virtio_pci_device *vp_dev = to_vp_device(vdev);
-	return ioread8(vp_dev->ioaddr + VIRTIO_PCI_STATUS);
+	return ioread8(vp_dev->ioaddr + VIRTIO_PCI_STATUS);//发送tlp给后端读取状态。
 }
 
 static void vp_set_status(struct virtio_device *vdev, u8 status)
@@ -139,7 +139,7 @@ static struct virtqueue *setup_vq(struct virtio_pci_device *vp_dev,
 
 	/* create the vring */
 	vq = vring_create_virtqueue(index, num,
-				    VIRTIO_PCI_VRING_ALIGN, &vp_dev->vdev,
+				    VIRTIO_PCI_VRING_ALIGN, &vp_dev->vdev,//0.95以4KB对齐
 				    true, false, ctx,
 				    vp_notify, callback, name);
 	if (!vq)

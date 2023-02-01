@@ -144,7 +144,7 @@ static u32 vp_generation(struct virtio_device *vdev)
 	return vp_modern_generation(&vp_dev->mdev);
 }
 
-/* config->{get,set}_status() implementations */
+/* config->{get,set}_status() implementations 回调函数*/
 static u8 vp_get_status(struct virtio_device *vdev)
 {
 	struct virtio_pci_device *vp_dev = to_vp_device(vdev);
@@ -216,7 +216,7 @@ static struct virtqueue *setup_vq(struct virtio_pci_device *vp_dev,
 
 	/* create the vring 创建vring*/
 	vq = vring_create_virtqueue(index, num,
-				    SMP_CACHE_BYTES, &vp_dev->vdev,
+				    SMP_CACHE_BYTES, &vp_dev->vdev,//arm 以32(1<<5)对齐，x86以64字节（1<<6)对齐  SMP_CACHE_BYTES
 				    true, true, ctx,
 				    vp_notify, callback, name);
 	if (!vq)

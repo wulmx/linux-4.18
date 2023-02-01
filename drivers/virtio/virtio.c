@@ -287,7 +287,51 @@ static int virtio_dev_remove(struct device *_d)
 	drv->remove(dev);
 
 	/* Driver should have reset device. */
-	WARN_ON_ONCE(dev->config->get_status(dev));
+	/*
+	[Tue Sep 13 02:47:01 2022] WARNING: CPU: 28 PID: 696 at drivers/virtio/virtio.c:277 virtio_dev_remove+0x76/0x80
+	[Tue Sep 13 02:47:01 2022] Modules linked in: xt_CHECKSUM ipt_MASQUERADE xt_conntrack ipt_REJECT nf_reject_ipv4 nft_compat nft_counter nft_chain_nat nf_nat nf_conntrack
+	nf_defrag_ipv6 nf_defrag_ipv4 nf_tables nfnetlink tun bridge stp llc sunrpc vfat fat ext4 mbcache jbd2 intel_rapl_msr iTCO_wdt iTCO_vendor_support intel_rapl_common is
+	st_if_common skx_edac nfit libnvdimm x86_pkg_temp_thermal coretemp kvm_intel kvm irqbypass crct10dif_pclmul crc32_pclmul ghash_clmulni_intel rapl ipmi_ssif intel_cstate
+	virtio_net net_failover intel_uncore failover joydev pcspkr virtio_blk mei_me mei i2c_i801 ioatdma lpc_ich wmi acpi_ipmi ipmi_si ipmi_devintf ipmi_msghandler acpi_powe
+	r_meter ip_tables xfs libcrc32c sd_mod sg ast drm_vram_helper drm_kms_helper syscopyarea nvme sysfillrect sysimgblt fb_sys_fops drm_ttm_helper nvme_core ttm crc32c_inte
+	l ahci t10_pi libahci drm libata igb dca i2c_algo_bit dm_mirror dm_region_hash dm_log dm_mod fuse
+	[Tue Sep 13 02:47:01 2022] CPU: 28 PID: 696 Comm: irq/36-pciehp Kdump: loaded Not tainted 4.18.0-30501.10.2.el8.x86_64 #1
+	[Tue Sep 13 02:47:01 2022] Hardware name: Inspur NF5280M5/YZMB-00882-104, BIOS 4.1.19 06/16/2021
+	[Tue Sep 13 02:47:01 2022] RIP: 0010:virtio_dev_remove+0x76/0x80
+	[Tue Sep 13 02:47:01 2022] Code: d8 03 00 00 4c 89 e7 48 8b 40 18 e8 b4 1a 69 00 84 c0 75 16 4c 89 e7 be 01 00 00 00 e8 53 ff ff ff 31 c0 5b 5d 41 5c 41 5d c3 <0f> 0b e
+	b e6 66 0f 1f 44 00 00 0f 1f 44 00 00 48 89 f0 8b 8f d4 03
+	[Tue Sep 13 02:47:01 2022] RSP: 0018:ffffabf687a33c98 EFLAGS: 00010286
+	[Tue Sep 13 02:47:01 2022] RAX: 00000000000000ff RBX: ffff9db546b03810 RCX: 00000000820001ff
+	[Tue Sep 13 02:47:01 2022] RDX: 0000000082000200 RSI: 00000000820001ff RDI: ffffabf681c51012
+	[Tue Sep 13 02:47:01 2022] RBP: ffff9db546b03808 R08: 0000000000000001 R09: ffffffff87f6f901
+	[Tue Sep 13 02:47:01 2022] R10: ffff9db5467fb080 R11: 0000000000000001 R12: ffff9db546b03800
+	[Tue Sep 13 02:47:01 2022] R13: ffffffffc0f3f300 R14: ffff9db727796ea4 R15: ffff9db51fb03d80
+	[Tue Sep 13 02:47:01 2022] FS:  0000000000000000(0000) GS:ffff9db737600000(0000) knlGS:0000000000000000
+	[Tue Sep 13 02:47:01 2022] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+	[Tue Sep 13 02:47:01 2022] CR2: 000055ed4aa43dc0 CR3: 00000002f7010002 CR4: 00000000007706e0
+	[Tue Sep 13 02:47:01 2022] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+	[Tue Sep 13 02:47:01 2022] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+	[Tue Sep 13 02:47:01 2022] PKRU: 55555554
+	[Tue Sep 13 02:47:01 2022] Call Trace:
+	[Tue Sep 13 02:47:01 2022]  device_release_driver_internal+0x103/0x1f0
+	[Tue Sep 13 02:47:01 2022]  bus_remove_device+0xf7/0x170
+	[Tue Sep 13 02:47:01 2022]  device_del+0x181/0x410
+	[Tue Sep 13 02:47:01 2022]  device_unregister+0x16/0x60
+	[Tue Sep 13 02:47:01 2022]  unregister_virtio_device+0x11/0x20
+	[Tue Sep 13 02:47:01 2022]  virtio_pci_remove+0x2f/0x60
+	[Tue Sep 13 02:47:01 2022]  pci_device_remove+0x3b/0xc0
+	[Tue Sep 13 02:47:01 2022]  device_release_driver_internal+0x103/0x1f0
+	[Tue Sep 13 02:47:01 2022]  pci_stop_bus_device+0x69/0x90
+	[Tue Sep 13 02:47:01 2022]  pci_stop_and_remove_bus_device+0xe/0x20
+	[Tue Sep 13 02:47:01 2022]  pciehp_unconfigure_device+0x7c/0x130
+	[Tue Sep 13 02:47:01 2022]  pciehp_disable_slot+0x6b/0x130
+	[Tue Sep 13 02:47:01 2022]  pciehp_handle_disable_request+0x3b/0x60
+	[Tue Sep 13 02:47:01 2022]  pciehp_ist+0x193/0x1b0
+	[Tue Sep 13 02:47:01 2022]  ? irq_finalize_oneshot.part.47+0xf0/0xf0
+	[Tue Sep 13 02:47:01 2022]  irq_thread_fn+0x1f/0x50
+	[Tue Sep 13 02:47:01 2022]  irq_thread+0xe7/0x170
+	 */
+	WARN_ON_ONCE(dev->config->get_status(dev));//如果vp_get_status返回1，则告警
 
 	/* Acknowledge the device's existence again. */
 	virtio_add_status(dev, VIRTIO_CONFIG_S_ACKNOWLEDGE);

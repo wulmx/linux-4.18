@@ -175,7 +175,7 @@ static inline unsigned long decode_bar(struct pci_dev *dev, u32 bar)
  * @type: type of the BAR
  * @res: resource buffer to be filled in
  * @pos: BAR position in the config space
- *
+ * wlm: 从后端卡上读取bar0 bar1... resource 地址
  * Returns 1 if the BAR is 64-bit, or 0 if 32-bit.
  */
 int __pci_read_base(struct pci_dev *dev, enum pci_bar_type type,
@@ -286,8 +286,8 @@ int __pci_read_base(struct pci_dev *dev, enum pci_bar_type type,
 		}
 	}
 
-	region.start = l64;
-	region.end = l64 + sz64 - 1;
+	region.start = l64;// BARn 基地址
+	region.end = l64 + sz64 - 1;// end address
 
 	pcibios_bus_to_resource(dev->bus, res, &region);
 	pcibios_resource_to_bus(dev->bus, &inverted_region, res);
@@ -318,7 +318,7 @@ fail:
 	res->flags = 0;
 out:
 	if (res->flags)
-		pci_info(dev, "reg 0x%x: %pR\n", pos, res);
+		pci_info(dev, "reg 0x%x: %pR\n", pos, res); //dmesg 中的打印例如bar0: pci 0000:1e:00.0: reg 0x10: [mem 0xe6301000-0xe6301fff]
 
 	return (res->flags & IORESOURCE_MEM_64) ? 1 : 0;
 }

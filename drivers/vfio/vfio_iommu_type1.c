@@ -64,7 +64,7 @@ module_param_named(dma_entry_limit, dma_entry_limit, uint, 0644);
 MODULE_PARM_DESC(dma_entry_limit,
 		 "Maximum number of user DMA mappings per container (65535).");
 
-struct vfio_iommu {
+struct vfio_iommu {//为vfio提供iommu功能， 封装iommu
 	struct list_head	domain_list;
 	struct list_head	iova_list;
 	struct vfio_domain	*external_domain; /* domain for external user */
@@ -2872,7 +2872,7 @@ static long vfio_iommu_type1_ioctl(void *iommu_data,
 		return vfio_iommu_type1_check_extension(iommu, arg);
 	case VFIO_IOMMU_GET_INFO:
 		return vfio_iommu_type1_get_info(iommu, arg);
-	case VFIO_IOMMU_MAP_DMA:
+	case VFIO_IOMMU_MAP_DMA://实现GPA映射到HPA
 		return vfio_iommu_type1_map_dma(iommu, arg);
 	case VFIO_IOMMU_UNMAP_DMA:
 		return vfio_iommu_type1_unmap_dma(iommu, arg);

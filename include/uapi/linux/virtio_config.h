@@ -69,14 +69,14 @@
 /* v1.0 compliant. */
 #define VIRTIO_F_VERSION_1		32
 
-/*
+/* 设置这个bit 就表示使用 DMA API, vring_use_dma_api 也就会加入到 iommu group中
  * If clear - device has the platform DMA (e.g. IOMMU) bypass quirk feature.
  * If set - use platform DMA tools to access the memory.
  *
  * Note the reverse polarity (compared to most other features),
  * this is for compatibility with legacy systems.
  */
-#define VIRTIO_F_ACCESS_PLATFORM	33
+#define VIRTIO_F_ACCESS_PLATFORM	33  //1.1添加的feature bit，为了virtio 硬件化。 
 #ifndef __KERNEL__
 /* Legacy name for VIRTIO_F_ACCESS_PLATFORM (for compatibility with old userspace) */
 #define VIRTIO_F_IOMMU_PLATFORM		VIRTIO_F_ACCESS_PLATFORM
@@ -89,7 +89,7 @@
  * This feature indicates that memory accesses by the driver and the
  * device are ordered in a way described by the platform.
  */
-#define VIRTIO_F_ORDER_PLATFORM		36
+#define VIRTIO_F_ORDER_PLATFORM		36  //1.1添加的feature bit，为了virtio 硬件化
 
 /*
  * Does the device support Single Root I/O Virtualization?

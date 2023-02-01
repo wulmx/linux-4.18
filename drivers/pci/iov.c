@@ -539,7 +539,7 @@ static int sriov_enable(struct pci_dev *dev, int nr_virtfn)
 	iov->ctrl |= PCI_SRIOV_CTRL_VFE | PCI_SRIOV_CTRL_MSE;
 	pci_cfg_access_lock(dev);
 	pci_write_config_word(dev, iov->pos + PCI_SRIOV_CTRL, iov->ctrl);
-	msleep(100);
+	msleep(100);//睡眠100ms
 	pci_cfg_access_unlock(dev);
 
 	rc = sriov_add_vfs(dev, initial);
@@ -629,7 +629,7 @@ found:
 	pci_write_config_word(dev, pos + PCI_SRIOV_CTRL, ctrl);
 	//wlm:从配置空间中读取最大支持多少个VF
 	pci_read_config_word(dev, pos + PCI_SRIOV_TOTAL_VF, &total);
-	if (!total)
+	if (!total)//这个地方最好加个打印告诉用户读出来的total是0
 		return 0;
 	//读取配置空间中的所支持的page size
 	pci_read_config_dword(dev, pos + PCI_SRIOV_SUP_PGSIZE, &pgsz);
@@ -639,7 +639,7 @@ found:
 		return -EIO;
 
 	pgsz &= ~(pgsz - 1);
-	pci_write_config_dword(dev, pos + PCI_SRIOV_SYS_PGSIZE, pgsz);
+	pci_write_config_dword(dev, pos + PCI_SRIOV_SUP_PGSIZE, pgsz);
 
 	iov = kzalloc(sizeof(*iov), GFP_KERNEL);
 	if (!iov)
@@ -656,17 +656,23 @@ found:
 		if (res->flags & IORESOURCE_PCI_FIXED)
 			bar64 = (res->flags & IORESOURCE_MEM_64) ? 1 : 0;
 		else
-			bar64 = __pci_read_base(dev, pci_bar_unknown, res,
+			bar64 = __pci_read_base(dev, pci_bar_unknown, res,//读取BARi的基地址及resource region
 						pos + PCI_SRIOV_BAR + i * 4);
 		if (!res->flags)
 			continue;
-		if (resource_size(res) & (PAGE_SIZE - 1)) {
-			rc = -EIO;
+		/*
+		 * 在pcie 5.0协议的说明文档的9.3.3.14 VF BAR0 (Offset 24h), VF BAR1 (Offset 28h), VF BAR2 (Offset 2Ch), 
+		 * VF BAR3 (Offset30h), VF BAR4 (Offset 34h), VF BAR5 (Offset 38h)小节中有
+		 * The amount of address space decoded by each BAR shall be an integral multiple of System Page Size这一句，
+		 * vf bar空间的大小应是System Page Size的整数倍，vdev这里是需要根据System Page Size的值来决定vf bar空间的大小的
+		*/
+		if (resource_size(res) & (PAGE_SIZE - 1)) {//arm64 场景alps卡在这个地方抛异常，因为resouce size：4096， page size:65536
+			rc = -EIO;// ALPS 报错的地方返回 -5
 			goto failed;
 		}
 		iov->barsz[i] = resource_size(res);
-		res->end = res->start + resource_size(res) * total - 1;
-		pci_info(dev, "VF(n) BAR%d space: %pR (contains BAR%d for %d VFs)\n",
+		res->end = res->start + resource_size(res) * total - 1;//这个算的是所有 VF 占用的地址
+		pci_info(dev, "VF(n) BAR%d space: %pR (contains BAR%d for %d VFs)\n",//正常初始化SRIOV 会打印这行
 			 i, res, i, total);
 		i += bar64;
 		nres++;
@@ -766,7 +772,7 @@ int pci_iov_init(struct pci_dev *dev)
 	/* wlm:查看是否有CI_EXT_CAP_ID_SRIOV扩展属性 */
 	pos = pci_find_ext_capability(dev, PCI_EXT_CAP_ID_SRIOV);
 	if (pos)
-		return sriov_init(dev, pos);//有扩展属性则会niit sriov
+		return sriov_init(dev, pos);//有扩展属性则会init sriov
 
 	return -ENODEV;
 }

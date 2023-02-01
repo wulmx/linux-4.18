@@ -174,7 +174,7 @@ static dma_addr_t vdpasim_map_page(struct device *dev, struct page *page,
 {
 	struct vdpasim *vdpasim = dev_to_sim(dev);
 	phys_addr_t paddr = page_to_phys(page) + offset;
-	int perm = dir_to_perm(dir);
+	int perm = dir_to_perm(dir);//perm设置读写属性
 
 	if (perm < 0)
 		return DMA_MAPPING_ERROR;

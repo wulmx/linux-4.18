@@ -552,8 +552,8 @@ re_probe:
 	dev->driver = drv;
 
 	/* If using pinctrl, bind pins now before probing */
-	ret = pinctrl_bind_pins(dev);
-	if (ret)
+	ret = pinctrl_bind_pins(dev);//对该device涉及的pin进行pin control相关设定
+	if (ret)// ret为0 则是正常非0 就说明bind 失败
 		goto pinctrl_bind_failed;
 
 	if (dev->bus->dma_configure) {
@@ -575,7 +575,7 @@ re_probe:
 	}
 
 	if (dev->bus->probe) {
-		ret = dev->bus->probe(dev);
+		ret = dev->bus->probe(dev);//正式的 根据总线进行 probe 设备
 		if (ret)
 			goto probe_failed;
 	} else if (drv->probe) {

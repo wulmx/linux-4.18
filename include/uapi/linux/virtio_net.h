@@ -45,7 +45,7 @@
 #define VIRTIO_NET_F_HOST_TSO6	12	/* Host can handle TSOv6 in. */
 #define VIRTIO_NET_F_HOST_ECN	13	/* Host can handle TSO[6] w/ ECN in. */
 #define VIRTIO_NET_F_HOST_UFO	14	/* Host can handle UFO in. */
-#define VIRTIO_NET_F_MRG_RXBUF	15	/* Host can merge receive buffers. */
+#define VIRTIO_NET_F_MRG_RXBUF	15	/* Host can merge receive buffers.开启属性可以接受大包，多个小buf 合成一个大buf */
 #define VIRTIO_NET_F_STATUS	16	/* virtio_net_config.status available */
 #define VIRTIO_NET_F_CTRL_VQ	17	/* Control channel available */
 #define VIRTIO_NET_F_CTRL_RX	18	/* Control channel RX mode support */
@@ -123,7 +123,7 @@ struct virtio_net_hdr_v1 {
  * For legacy virtio, if VIRTIO_F_ANY_LAYOUT is not negotiated, it must
  * be the first element of the scatter-gather list.  If you don't
  * specify GSO or CSUM features, you can simply ignore the header. */
-struct virtio_net_hdr {
+struct virtio_net_hdr { 
 	/* See VIRTIO_NET_HDR_F_* */
 	__u8 flags;
 	/* See VIRTIO_NET_HDR_GSO_* */
@@ -136,9 +136,9 @@ struct virtio_net_hdr {
 
 /* This is the version of the header to use when the MRG_RXBUF
  * feature has been negotiated. */
-struct virtio_net_hdr_mrg_rxbuf {
-	struct virtio_net_hdr hdr;
-	__virtio16 num_buffers;	/* Number of merged rx buffers */
+struct virtio_net_hdr_mrg_rxbuf {// 0.95是10个字节，1.0是12个字节
+	struct virtio_net_hdr hdr;  //10个字节
+	__virtio16 num_buffers;	/* Number of merged rx buffers */ //2个字节
 };
 #endif /* ...VIRTIO_NET_NO_LEGACY */
 

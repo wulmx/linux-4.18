@@ -117,6 +117,9 @@ desc chain 中每个desc 要合理正确设置VIRTQ_DESC_F_AVAIL, VIRTQ_DESC_F_U
  * cap.offset + queue_notify_off * notify_off_multiplier，
  * 通过读取此地址的值判定是发哪个队列发包，而legacy则是驱动将16-bit索引写入到第一个io空间的virtio头
  * 的Queue Notify中；
+ * 2022/12/17
+ * 如果notify_off_multiplier， 为0 则会将所有notify 都发往一个队列，会造成性能影响
+ * 
  */
 #define VIRTIO_RING_F_EVENT_IDX		29
 
@@ -127,6 +130,13 @@ struct vring_desc {
 	/* Length. */
 	__virtio32 len;
 	/* The flags as indicated above. */
+	/* This marks a buffer as continuing via the next field. */
+	//#define VRING_DESC_F_NEXT	1
+	/* This marks a buffer as write-only (otherwise read-only). */
+	//#define VRING_DESC_F_WRITE	2
+	/* This means the buffer contains a list of buffer descriptors. */
+	//#define VRING_DESC_F_INDIRECT	4
+	/* flag 用来描述上面3个宏定义 */
 	__virtio16 flags;
 	/* We chain unused descriptors via this, too */
 	__virtio16 next;//记录chain中下一个desc idx
@@ -156,13 +166,13 @@ struct vring_used_elem {
 
 struct vring_used {
 	__virtio16 flags;//告诉驱动当消费一个buffer不要中断
-	__virtio16 idx;
+	__virtio16 idx;//表示使用了desc ring中的索引
 	/*
 	 * last_used_idx记录的也不是desc ring的idx，而是used->ring的idx，
 	 * 对应used->ring[idx]记录的是上一次后端已经处理好可以给前端释放（对于guest rx来说）
 	 * 的desc chain的header idx。
 	 */
-	struct vring_used_elem ring[];//存放desc的数据
+	struct vring_used_elem ring[];//存放desc的数据，索引数组，大小为virtqueue的num
 };
 
 struct vring {

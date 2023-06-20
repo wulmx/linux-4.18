@@ -1215,7 +1215,7 @@ static int vfio_fops_open(struct inode *inode, struct file *filep)
 	init_rwsem(&container->group_lock);
 	kref_init(&container->kref);
 
-	filep->private_data = container;
+	filep->private_data = container;//wlm: 关联文件句柄/dev/vfio/vfio，用户态进程打开这个文件就可以初始化和访问vfio_container。
 
 	return 0;
 }
@@ -1253,7 +1253,7 @@ static ssize_t vfio_fops_read(struct file *filep, char __user *buf,
 static ssize_t vfio_fops_write(struct file *filep, const char __user *buf,
 			       size_t count, loff_t *ppos)
 {
-	struct vfio_container *container = filep->private_data;
+	struct vfio_container *container = filep->private_data;//wlm: 关联文件句柄/dev/vfio/vfio
 	struct vfio_iommu_driver *driver;
 	ssize_t ret = -EINVAL;
 
@@ -1267,7 +1267,7 @@ static ssize_t vfio_fops_write(struct file *filep, const char __user *buf,
 
 static int vfio_fops_mmap(struct file *filep, struct vm_area_struct *vma)
 {
-	struct vfio_container *container = filep->private_data;
+	struct vfio_container *container = filep->private_data;//wlm: 关联文件句柄/dev/vfio/vfio
 	struct vfio_iommu_driver *driver;
 	int ret = -EINVAL;
 

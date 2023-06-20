@@ -64,7 +64,7 @@ module_param_named(dma_entry_limit, dma_entry_limit, uint, 0644);
 MODULE_PARM_DESC(dma_entry_limit,
 		 "Maximum number of user DMA mappings per container (65535).");
 
-struct vfio_iommu {//为vfio提供iommu功能， 封装iommu
+struct vfio_iommu {//即管理IOMMU页表的能力, 为vfio提供iommu功能， 封装iommu
 	struct list_head	domain_list;
 	struct list_head	iova_list;
 	struct vfio_domain	*external_domain; /* domain for external user */
@@ -456,7 +456,7 @@ static int vaddr_get_pfn(struct mm_struct *mm, unsigned long vaddr,
 		flags |= FOLL_WRITE;
 
 	mmap_read_lock(mm);
-	ret = pin_user_pages_remote(NULL, mm, vaddr, 1, flags | FOLL_LONGTERM,
+	ret = pin_user_pages_remote(NULL, mm, vaddr, 1, flags | FOLL_LONGTERM,//pin住内存的地方
 				    page, NULL, NULL);
 	if (ret == 1) {
 		*pfn = page_to_pfn(page[0]);
@@ -482,7 +482,7 @@ done:
 	return ret;
 }
 
-/*
+/* 会pin住内存 所以无法 migrate pages
  * Attempt to pin pages.  We really don't want to track all the pfns and
  * the iommu can only map chunks of consecutive pfns anyway, so get the
  * first page and all consecutive pages with the same locking.
@@ -2440,7 +2440,7 @@ static void *vfio_iommu_type1_open(unsigned long arg)
 		return ERR_PTR(-ENOMEM);
 
 	switch (arg) {
-	case VFIO_TYPE1_IOMMU:
+	case VFIO_TYPE1_IOMMU://type1就是指支持iommu的vfio
 		break;
 	case VFIO_TYPE1_NESTING_IOMMU:
 		iommu->nesting = true;

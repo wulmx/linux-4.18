@@ -44,7 +44,8 @@ void vp_synchronize_vectors(struct virtio_device *vdev)
 bool vp_notify(struct virtqueue *vq)
 {
 	/* we write the queue's selector into the notification register to
-	 * signal the other end */
+	 * signal the other end 
+	 * 写VIRTIO_PCI_QUEUE_NOTIFY(A 16-bit r/w queue notifier)来达到通知的目的.*/
 	iowrite16(vq->index, (void __iomem *)vq->priv);
 	return true;
 }

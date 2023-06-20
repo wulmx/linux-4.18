@@ -24,13 +24,13 @@
  * element in the queue, otherwise a buffer will need one element per
  * sg element.
  */
-struct virtqueue {
+struct virtqueue {//wlm: crash时 gendisk 的private成员变量就是virtqueue
 	struct list_head list;
 	void (*callback)(struct virtqueue *vq);
 	const char *name;
 	struct virtio_device *vdev;
 	unsigned int index;
-	unsigned int num_free;
+	unsigned int num_free;//可以填充的 desc entry
 	void *priv;
 };
 

@@ -25,7 +25,9 @@ struct vhost_work {
 	unsigned long		  flags;
 };
 
-/* Poll a file (eventfd or socket) */
+/* Poll a file (eventfd or socket) 
+通过轮训eventfd(在kvm中申请)，
+如果前端有写fd，则触发kick， kick后通知后端 */
 /* Note: there's nothing vhost specific about this structure. */
 struct vhost_poll {
 	poll_table                table;

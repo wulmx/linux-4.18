@@ -82,6 +82,11 @@ void arch_release_task_struct(struct task_struct *tsk);
  *  TIF_USEDFPU		- FPU was used by this task this quantum (SMP)
  */
 #define TIF_SIGPENDING		0
+/*
+ * stsk->thread_info->flags设置TIF_NEED_RESCHED标志
+ * 内核的某些路径上设置了这个标志之后，将在最近的调度点发生调度
+ * （可能是最近开启抢占的时候，也可能是最近中断异常返回的时候）
+ */
 #define TIF_NEED_RESCHED	1
 #define TIF_NOTIFY_RESUME	2	/* callback before returning to user */
 #define TIF_FOREIGN_FPSTATE	3	/* CPU's FP state is not current's */

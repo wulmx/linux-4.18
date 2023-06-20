@@ -3628,18 +3628,23 @@ static int handle_mmio_page_fault(struct kvm_vcpu *vcpu, u64 addr, bool direct)
 {
 	u64 spte;
 	bool reserved;
-
+	/* 如果引起MMIO的GPA之前保存在缓存中，则跳过页表遍历，直接执行指令模拟，减少执行开销 */
 	if (mmio_info_in_cache(vcpu, addr, direct))
 		return RET_PF_EMULATE;
 
 	reserved = get_mmio_spte(vcpu, addr, &spte);
 	if (WARN_ON(reserved))
 		return -EINVAL;
-
+	/* get_mmio_spte会遍历EPT页表，找到GPA所在的页表项并取出其内容 
+	 * 同时其返回值还用于判断遍历页表的过程中是否有页表项的reserved bit被置位
+	 * 为true表示reserved置位，但是并非MMIO类型的内存。这种情况下KVM中不会出现，因此报错
+	 * 为false表示正常	 */
 	if (is_mmio_spte(spte)) {
 		gfn_t gfn = get_mmio_spte_gfn(spte);
 		unsigned int access = get_mmio_spte_access(spte);
-
+	/* 判断取出的页表项是否为MMIO类型的，如果是，在执行指令模拟前，在intel的架构实现中
+	 * 还可以缓存页表项对应的GPA地址，下一次相同GPA地址的MMIO缺页就可以直接从缓存中去spte
+	 */
 		if (!check_mmio_spte(vcpu, spte))
 			return RET_PF_INVALID;
 
@@ -3647,8 +3652,8 @@ static int handle_mmio_page_fault(struct kvm_vcpu *vcpu, u64 addr, bool direct)
 			addr = 0;
 
 		trace_handle_mmio_page_fault(addr, gfn, access);
-		vcpu_cache_mmio_info(vcpu, addr, gfn, access);
-		return RET_PF_EMULATE;
+		vcpu_cache_mmio_info(vcpu, addr, gfn, access);/* 缓存GPA地址对应的页框号 */
+		return RET_PF_EMULATE;/* 正常情况下，返回RET_PF_EMULATE表示需要KVM模拟MMIO内存的读写指令 */
 	}
 
 	/*
@@ -5134,6 +5139,7 @@ int kvm_mmu_page_fault(struct kvm_vcpu *vcpu, gpa_t cr2_or_gpa, u64 error_code,
 		return RET_PF_RETRY;
 
 	r = RET_PF_INVALID;
+	/* 首先判断是否要处理保留位引起的PF，这里符合条件，进入handle_mmio_page_fault逻辑 */
 	if (unlikely(error_code & PFERR_RSVD_MASK)) {
 		r = handle_mmio_page_fault(vcpu, cr2_or_gpa, direct);
 		if (r == RET_PF_EMULATE)

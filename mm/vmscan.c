@@ -3633,6 +3633,7 @@ restart:
 		 * zone watermarks will be still reset at the end of balancing
 		 * on the grounds that the normal reclaim should be enough to
 		 * re-evaluate if boosting is required when kswapd next wakes.
+		 * 遍历各个zone 判断是否平衡，平衡标准是各个总是否达到高水位
 		 */
 		balanced = pgdat_balanced(pgdat, sc.order, highest_zoneidx);
 		if (!balanced && nr_boost_reclaim) {
@@ -3645,7 +3646,7 @@ restart:
 		 * eligible zones. Note that sc.reclaim_idx is not used as
 		 * buffer_heads_over_limit may have adjusted it.
 		 */
-		if (!nr_boost_reclaim && balanced)
+		if (!nr_boost_reclaim && balanced)//如果zone已经平衡，兵器boost=0， 则不启动kswapd 回收内存。
 			goto out;
 
 		/* Limit the priority of boosting to avoid reclaim writeback */

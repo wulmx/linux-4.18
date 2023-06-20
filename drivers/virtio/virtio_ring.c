@@ -97,7 +97,7 @@ struct vring_desc_extra_packed {
 	u16 flags;			/* Descriptor flags. */
 };
 
-struct vring_virtqueue {
+struct vring_virtqueue {/* vring_virtqueu是私有数据结构，其它地方没发访问， 例如virgio_blk*/
 	struct virtqueue vq;
 
 	/* Is this a packed ring? */
@@ -119,7 +119,7 @@ struct vring_virtqueue {
 	bool event;
 
 	/* Head of free buffer list. */
-	unsigned int free_head;//free buffer 的头
+	unsigned int free_head;// free buffer 的头, desc的下标
 	/* Number we've added since last sync. */
 	unsigned int num_added;//最近一次操作向队列中添加报文的数量
 
@@ -613,15 +613,16 @@ static bool virtqueue_kick_prepare_split(struct virtqueue *_vq)
 	/* We need to expose available array entries before checking avail
 	 * event. */
 	virtio_mb(vq->weak_barriers);
-
+	/*old表示上次kick后的vring.avail->idx;new表示当前idx*/
 	old = vq->split.avail_idx_shadow - vq->num_added;
 	new = vq->split.avail_idx_shadow;
 	vq->num_added = 0;
 
 	LAST_ADD_TIME_CHECK(vq);
 	LAST_ADD_TIME_INVALID(vq);
-
-	if (vq->event) {
+	/* vq->event的值与VIRTIO_RING_F_EVENT_IDX
+	（Virtio PCI Card Specification Version 0.9.5中定义此字段）有关。 */
+	if (vq->event) {/*当VIRTIO_RING_F_EVENT_IDX被置位vq->event为1*/
 		needs_kick = vring_need_event(virtio16_to_cpu(_vq->vdev,
 					vring_avail_event(&vq->split.vring)),
 					      new, old);
@@ -1864,7 +1865,7 @@ bool virtqueue_notify(struct virtqueue *_vq)
 		return false;
 
 	/* Prod other side to tell it about changes. */
-	if (!vq->notify(_vq)) {
+	if (!vq->notify(_vq)) {/*在setup_vq中创建virtqueue时绑定的, vp_notify*/
 		vq->broken = true;
 		return false;
 	}

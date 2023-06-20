@@ -673,12 +673,12 @@ void kvm_irqfd_exit(void)
 
 struct _ioeventfd {
 	struct list_head     list;
-	u64                  addr;
-	int                  length;
-	struct eventfd_ctx  *eventfd;
-	u64                  datamatch;
-	struct kvm_io_device dev;
-	u8                   bus_idx;
+	u64                  addr;// 客户机PIO/MMIO地址，当客户机向该地址写入数据时触发event
+	int                  length;//客户机向该地址写入数据时数据的长度，当length为0时，忽略写入数据的长度
+	struct eventfd_ctx  *eventfd;//关联的eventfd
+	u64                  datamatch;//用户态程序设置的match data，当ioeventfd被设置了KVM_IOEVENTFD_FLAG_DATAMATCH，只有满足客户机写入的值等于datamatch的条件时才触发event
+	struct kvm_io_device dev;//VM-Exit退出时调用dev->ops的write操作，对应ioeventfd_write
+	u8                   bus_idx;//客户机的地址被分为了4类，MMIO，PIO，VIRTIO_CCW_NOTIFY，FAST_MMIO，bus_idx用来区分注册的地址是哪一类
 	bool                 wildcard;
 };
 
@@ -746,12 +746,12 @@ static int
 ioeventfd_write(struct kvm_vcpu *vcpu, struct kvm_io_device *this, gpa_t addr,
 		int len, const void *val)
 {
-	struct _ioeventfd *p = to_ioeventfd(this);
+	struct _ioeventfd *p = to_ioeventfd(this);//7. 根据从bus总线上取下的range[]，取出其dev成员，由于dev结构体是_ioeventfd的一个成员，通过container转化可以取出_ioeventfd
 
-	if (!ioeventfd_in_range(p, addr, len, val))
+	if (!ioeventfd_in_range(p, addr, len, val))//8. 检查缺页物理地址和range中注册的地址是否匹配
 		return -EOPNOTSUPP;
 
-	eventfd_signal(p->eventfd, 1);
+	eventfd_signal(p->eventfd, 1);//9. 取出_ioeventfd中的eventfd_ctx结构体，往它维护的计数器中加1
 	return 0;
 }
 
@@ -808,11 +808,11 @@ static int kvm_assign_ioeventfd_idx(struct kvm *kvm,
 	struct _ioeventfd *p;
 	int ret;
 
-	eventfd = eventfd_ctx_fdget(args->fd);
+	eventfd = eventfd_ctx_fdget(args->fd);// 3. 根据fd从进程的描述符表中找到struct file结构，从file->private_data取出eventfd_ctx
 	if (IS_ERR(eventfd))
 		return PTR_ERR(eventfd);
 
-	p = kzalloc(sizeof(*p), GFP_KERNEL_ACCOUNT);
+	p = kzalloc(sizeof(*p), GFP_KERNEL_ACCOUNT);//4. 使用用户态传入的kvm_ioeventfd初始化一个_ioeventfd结构
 	if (!p) {
 		ret = -ENOMEM;
 		goto fail;
@@ -838,14 +838,14 @@ static int kvm_assign_ioeventfd_idx(struct kvm *kvm,
 		goto unlock_fail;
 	}
 
-	kvm_iodevice_init(&p->dev, &ioeventfd_ops);
+	kvm_iodevice_init(&p->dev, &ioeventfd_ops);//5. 设置_ioeventfd的钩子函数，当虚机写内存缺页时，KVM首先尝试触发p->dev中的write函数，检查缺页地址是否满足ioeventfd触发条件
 
 	ret = kvm_io_bus_register_dev(kvm, bus_idx, p->addr, p->length,
-				      &p->dev);
+				      &p->dev);//6. 将_ioeventfd中的地址信息和钩子函数封装成kvm_io_range，放到kvm->buses的range[]数组中。之后kvm在处理缺页就可以查询到缺页地址是否在已注册的ioeventfd的地址区间
 	if (ret < 0)
 		goto unlock_fail;
 
-	kvm_get_bus(kvm, bus_idx)->ioeventfd_count++;
+	kvm_get_bus(kvm, bus_idx)->ioeventfd_count++;//7. 更新ioeventfd的计数，将ioeventfd放到kvm的ioeventfds链表中，维护起来
 	list_add_tail(&p->list, &kvm->ioeventfds);
 
 	mutex_unlock(&kvm->slots_lock);
@@ -925,7 +925,7 @@ kvm_assign_ioeventfd(struct kvm *kvm, struct kvm_ioeventfd *args)
 	enum kvm_bus              bus_idx;
 	int ret;
 
-	bus_idx = ioeventfd_bus_from_flags(args->flags);
+	bus_idx = ioeventfd_bus_from_flags(args->flags);/*首先根据地址所属总线类型，找到总线索引，方便在kvm->buses数组中找到kvm_io_bus结构 */
 	/* must be natural-word sized, or 0 to ignore length */
 	switch (args->len) {
 	case 0:
@@ -950,7 +950,7 @@ kvm_assign_ioeventfd(struct kvm *kvm, struct kvm_ioeventfd *args)
 	if (!args->len && (args->flags & KVM_IOEVENTFD_FLAG_DATAMATCH))
 		return -EINVAL;
 
-	ret = kvm_assign_ioeventfd_idx(kvm, bus_idx, args);
+	ret = kvm_assign_ioeventfd_idx(kvm, bus_idx, args);/* 注册ioeventfd，将用户态的信息拆解，封装成内核态的kvm_io_bus和_ioeventfd结构，保存到kvm结构体的对应成员 */
 	if (ret)
 		goto fail;
 

@@ -3966,7 +3966,7 @@ static void drain_array(struct kmem_cache *cachep, struct kmem_cache_node *n,
 /**
  * cache_reap - Reclaim memory from caches.
  * @w: work descriptor
- *
+ * 每个cpu上回注册 reap_work, 调用cache_reap的来定期回收cpu上的cache，间隔是2S， 超时是4S
  * Called from workqueue/eventd every few seconds.
  * Purpose:
  * - clear the per-cpu caches for this CPU.
@@ -4007,7 +4007,7 @@ static void cache_reap(struct work_struct *w)
 		if (time_after(n->next_reap, jiffies))
 			goto next;
 
-		n->next_reap = jiffies + REAPTIMEOUT_NODE;
+		n->next_reap = jiffies + REAPTIMEOUT_NODE;//超时时间4S
 
 		drain_array(searchp, n, n->shared, node);
 
@@ -4029,7 +4029,7 @@ next:
 out:
 	/* Set up the next iteration */
 	schedule_delayed_work_on(smp_processor_id(), work,
-				round_jiffies_relative(REAPTIMEOUT_AC));
+				round_jiffies_relative(REAPTIMEOUT_AC));//设置下一次回收时间回收间隔 2S
 }
 
 void get_slabinfo(struct kmem_cache *cachep, struct slabinfo *sinfo)

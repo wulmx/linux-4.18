@@ -5436,8 +5436,8 @@ SYSCALL_DEFINE0(sched_yield)
 #ifndef CONFIG_PREEMPTION
 int __sched _cond_resched(void)
 {
-	if (should_resched(0)) {
-		preempt_schedule_common();
+	if (should_resched(0)) {  //判断抢占计数器是否为0
+		preempt_schedule_common(); //进行抢占式调度
 		return 1;
 	}
 	rcu_all_qs();

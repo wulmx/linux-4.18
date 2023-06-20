@@ -7570,7 +7570,7 @@ int x86_emulate_instruction(struct kvm_vcpu *vcpu, gpa_t cr2_or_gpa,
 
 	if (!(emulation_type & EMULTYPE_NO_DECODE)) {
 		kvm_clear_exception_queue(vcpu);
-
+		/* 读取汇编指令内容，并执行该指令 */
 		r = x86_decode_emulated_instruction(vcpu, emulation_type,
 						    insn, insn_len);
 		if (r != EMULATION_OK)  {
@@ -7666,7 +7666,7 @@ restart:
 			vcpu->arch.complete_userspace_io = complete_emulated_pio;
 		}
 		r = 0;
-	} else if (vcpu->mmio_needed) {
+	} else if (vcpu->mmio_needed) {	/* 这里mmio_needed为true，进入 */
 		++vcpu->stat.mmio_exits;
 
 		if (!vcpu->mmio_is_write)

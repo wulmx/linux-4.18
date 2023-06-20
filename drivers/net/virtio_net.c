@@ -178,7 +178,7 @@ struct receive_queue {
 /* Control VQ buffers: protected by the rtnl lock */
 struct control_buf {
 	struct virtio_net_ctrl_hdr hdr;
-	virtio_net_ctrl_ack status;
+	virtio_net_ctrl_ack status;/* 0(OK) 和 1(error) */
 	struct virtio_net_ctrl_mq mq;
 	u8 promisc;
 	u8 allmulti;
@@ -1670,7 +1670,8 @@ static bool virtnet_send_command(struct virtnet_info *vi, u8 class, u8 cmd,
 
 	/* Spin for a response, the kick causes an ioport write, trapping
 	 * into the hypervisor, so the request should be handled immediately.
-	 * 等待后端返回，如果没返回会发生软锁
+	 * 获取控制队列的数据
+	 * 等待后端返回，如果没返回会发生软锁（能相应中断时软锁，中断关闭时硬锁）
 	 * 含义是只要取不到buf就一直spin 读内存,
 	 */
 	while (!virtqueue_get_buf(vi->cvq, &tmp) &&

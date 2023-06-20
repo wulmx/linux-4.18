@@ -868,7 +868,7 @@ static int vhost_vdpa_open(struct inode *inode, struct file *filep)
 	nvqs = v->nvqs;
 	vhost_vdpa_reset(v);// 打开vhost vdpa设备时候会重制设备
 
-	vqs = kmalloc_array(nvqs, sizeof(*vqs), GFP_KERNEL);
+	vqs = kmalloc_array(nvqs, sizeof(*vqs), GFP_KERNEL);//kmalloc 物理内存连续， 可以通过 + sizeof(vhost_virtqueue）查找下一个对队列
 	if (!vqs) {
 		r = -ENOMEM;
 		goto err;
@@ -986,7 +986,7 @@ static int vhost_vdpa_mmap(struct file *file, struct vm_area_struct *vma)
 	 * does not share the page with other registers.
 	 */
 	notify = ops->get_vq_notification(vdpa, index);
-	if (notify.addr & (PAGE_SIZE - 1))
+	if (notify.addr & (PAGE_SIZE - 1))// 如果不是4KB 对齐的话会返回非法，绕过内核直接写设备？？
 		return -EINVAL;
 	if (vma->vm_end - vma->vm_start != notify.size)
 		return -ENOTSUPP;

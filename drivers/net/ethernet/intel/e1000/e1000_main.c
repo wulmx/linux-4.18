@@ -975,6 +975,10 @@ static int e1000_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 	hw->back = adapter;
 
 	err = -EIO;
+	/* 将PCIE 设备Bar空间对应的设备内存
+	 *（即PCIE终端设备上的Register空间）映射到主机的__iomem 类型虚拟地址，
+	 * 才可以被驱动程序访问。因为驱动时通过host cpu来访问虚拟机内存的
+	 */
 	hw->hw_addr = pci_ioremap_bar(pdev, BAR_0);
 	if (!hw->hw_addr)
 		goto err_ioremap;
